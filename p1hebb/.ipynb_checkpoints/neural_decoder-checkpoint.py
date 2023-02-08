@@ -256,8 +256,8 @@ class SoftmaxDecoder(NeuralDecoder):
         Do the follow pass with samples x.
         For the softmax network, this is Dense netIn followed by softmax netAct.
         '''
-        #print(tf.shape(self.wts))
-        #print(tf.shape(x))
+        # print(tf.shape(self.wts))
+        # print(tf.shape(x))
         net_in = x @ self.wts + self.b
         
         log_a = -tf.reduce_max(net_in, axis=1, keepdims=True)
@@ -273,8 +273,10 @@ class SoftmaxDecoder(NeuralDecoder):
         '''
         net_act = tf.cast(net_act, tf.float32)
         yh = tf.cast(yh, tf.float32)
-        loss = -tf.reduce_sum(tf.math.log(net_act)*yh, axis=0)
-        print(loss)
+        num_sample = yh.shape[0]
+        # print(net_act)
+        # print(yh)
+        loss = -tf.reduce_sum(tf.math.log(net_act)*yh) / num_sample
         return loss
 
 class NonlinearDecoder(NeuralDecoder):
