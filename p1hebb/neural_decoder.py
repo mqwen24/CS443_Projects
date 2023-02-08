@@ -23,19 +23,19 @@ class NeuralDecoder:
         num_classes: int. Num data classes (C)
         wt_stdev: float. Standard deviation of the Gaussian-distributed weights and bias
 
-        NOTE: Remember to wrap your weights and bias as tf.Variables for gradient tracking!
+        NOTE: Remember to wrap your weights and bias as tf. Variables for gradient tracking!
         '''
         # Change/set these
-        self.wts = None
-        self.b = None
+        self.wts = tf.Variable(tf.random.normal(shape=(num_features, num_classes), stddev=wt_stdev))
+        self.b = tf.Variable(tf.random.normal(shape=(num_classes,), stddev=wt_stdev))
 
     def get_wts(self):
         '''Returns the decoder wts'''
-        pass
+        return self.wts
 
     def get_b(self):
         '''Returns the decoder bias'''
-        pass
+        return self.b
 
     def set_wts(self, wts):
         '''Replaces the decoder weights with `wts` passed in as a parameter.
@@ -44,7 +44,7 @@ class NeuralDecoder:
         -----------
         wts: tf.Variable. shape=(M, C). New decoder network weights.
         '''
-        pass
+        self.wts = wts
 
     def set_b(self, b):
         '''Replaces the decoder bias with `b` passed in as a parameter.
@@ -53,7 +53,7 @@ class NeuralDecoder:
         -----------
         b: tf.Variable. shape=(C,). New decoder network bias.
         '''
-        pass
+        self.b = b
 
     def one_hot(self, y, C, off_value=0):
         '''One-hot codes the vector of class labels `y`
@@ -70,7 +70,7 @@ class NeuralDecoder:
             e.g. if off_value=-1, y=[1, 0], and C=3, the one-hot vector would be:
             [[-1., 1., -1.], [-1., 1., -1.]]
         '''
-        pass
+        return tf.one_hot(indices=y, depth=C, off_value=off_value)
 
     def accuracy(self, y_true, y_pred):
         '''Computes the accuracy of classified samples. Proportion correct
@@ -86,7 +86,8 @@ class NeuralDecoder:
 
         Hint: tf.where might be helpful.
         '''
-        pass
+        # print(tf.where(tf.math.equal(y_true, y_pred)))
+        return tf.size(tf.where(tf.math.equal(y_true, y_pred)))/tf.size(y_true)
 
     def forward(self, x):
         '''Performs the forward pass through the decoder network with data samples `x`
