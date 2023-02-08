@@ -247,3 +247,33 @@ class NeuralDecoder:
 
 
 # Suggested that SoftmaxDecoder and NonlinearDecoder go below:
+class SoftmaxDecoder(NeuralDecoder):
+    def __init__(self, num_features, num_classes, wt_stdev=0.1):
+        super().__init__(num_features, num_classes, wt_stdev)
+        
+    def forward(self, x):
+        '''
+        Do the follow pass with samples x.
+        For the softmax network, this is Dense netIn followed by softmax netAct.
+        '''
+        pass
+    
+    def loss(self, yh, net_act):
+        '''
+        Computes cross-entropy loss with true classes yh (one-hot coded) and net_act
+        '''
+        pass
+    
+
+class NonlinearDecoder(NeuralDecoder):
+    def __init__(self, num_features, num_classes, wt_stdev=0.1, beta=0.005, loss_exp=6):
+        super().__init__(num_features, num_classes, wt_stdev)
+        
+    def one_hot(self, y, C):
+        pass
+        
+    def forward(self, x):
+        pass
+    
+    def loss(self, yh, net_act):
+        pass
