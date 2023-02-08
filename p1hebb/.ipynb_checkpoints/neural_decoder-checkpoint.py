@@ -177,7 +177,20 @@ class NeuralDecoder:
         - It may be helpful to think of `recent_val_losses` as a queue: the current loss value always gets inserted
         either at the beginning or end. The oldest value is then always on the other end of the list.
         '''
-        pass
+        print("anything")
+        stop = False
+        if len(recent_val_losses) < patience:
+            recent_val_losses.append(curr_val_loss)
+            
+        else:
+            recent_val_losses.append(curr_val_loss)
+            recent_val_losses.pop(0)
+            
+            if recent_val_losses[0] < recent_val_losses[1] and recent_val_losses[0] < recent_val_losses[2]
+            and recent_val_losses[0] < recent_val_losses[3]:
+                stop = True
+                
+        return recent_val_losses, stop
 
     def extract_at_indices(self, x, indices):
         '''Returns the samples in `x` that have indices `indices` to form a mini-batch.
