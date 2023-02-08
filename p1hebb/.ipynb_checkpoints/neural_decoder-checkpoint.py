@@ -256,14 +256,26 @@ class SoftmaxDecoder(NeuralDecoder):
         Do the follow pass with samples x.
         For the softmax network, this is Dense netIn followed by softmax netAct.
         '''
-        pass
+        #print(tf.shape(self.wts))
+        #print(tf.shape(x))
+        net_in = x @ self.wts + self.b
+        
+        log_a = -tf.reduce_max(net_in, axis=1, keepdims=True)
+        exp_net_in = tf.exp(net_in + log_a)
+        sum_row = tf.reduce_sum(exp_net_in, axis=1, keepdims=True)
+        net_act = exp_net_in / sum_row
+        
+        return net_act
     
     def loss(self, yh, net_act):
         '''
         Computes cross-entropy loss with true classes yh (one-hot coded) and net_act
         '''
-        pass
-    
+        net_act = tf.cast(net_act, tf.float32)
+        yh = tf.cast(yh, tf.float32)
+        loss = -tf.reduce_sum(tf.math.log(net_act)*yh, axis=0)
+        print(loss)
+        return loss
 
 class NonlinearDecoder(NeuralDecoder):
     def __init__(self, num_features, num_classes, wt_stdev=0.1, beta=0.005, loss_exp=6):
