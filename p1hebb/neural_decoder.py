@@ -133,7 +133,10 @@ class NeuralDecoder:
         -----------
         y_preds: tf.constant. shape=(B,). int-coded predicted class for each sample in the mini-batch.
         '''
-        pass
+        if net_act is None:
+            net_act = self.forward(x)
+            
+        return tf.argmax(net_act, axis=1)
 
     def early_stopping(self, recent_val_losses, curr_val_loss, patience):
         '''Helper method used during training to determine whether training should stop before the maximum number of
