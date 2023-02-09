@@ -13,6 +13,7 @@ class NeuralDecoder:
     '''Neural network trained to decode the class label from the associated pattern of activation produced by a
     bio-inspired Hebbian learning network.
     '''
+
     def __init__(self, num_features, num_classes, wt_stdev=0.1):
         '''Constructor to intialize the decoding network weights and bias. The decoder is a single-layer network, so
         there is one set of weights and bias.
@@ -87,7 +88,7 @@ class NeuralDecoder:
         Hint: tf.where might be helpful.
         '''
         # print(tf.where(tf.math.equal(y_true, y_pred)))
-        return tf.size(tf.where(tf.math.equal(y_true, y_pred)))/tf.size(y_true)
+        return tf.size(tf.where(tf.math.equal(y_true, y_pred))) / tf.size(y_true)
 
     def forward(self, x):
         '''Performs the forward pass through the decoder network with data samples `x`
@@ -135,7 +136,7 @@ class NeuralDecoder:
         '''
         if net_act is None:
             net_act = self.forward(x)
-            
+
         return tf.argmax(net_act, axis=1)
 
     def early_stopping(self, recent_val_losses, curr_val_loss, patience):
@@ -180,19 +181,19 @@ class NeuralDecoder:
         stop = False
         if len(recent_val_losses) < patience:
             recent_val_losses.append(curr_val_loss)
-            
+
         else:
             recent_val_losses.append(curr_val_loss)
             recent_val_losses.pop(0)
-            
+
             decreasing = False
             for i in range(1, len(recent_val_losses)):
                 if recent_val_losses[0] > recent_val_losses[i]:
                     decreasing = True
-            
-            if decreasing == False:
+
+            if decreasing is False:
                 stop = True
-                
+
         return recent_val_losses, stop
 
     def extract_at_indices(self, x, indices):
@@ -212,7 +213,7 @@ class NeuralDecoder:
 
         Hint: Check out tf.gather. See TF tutorial from last semester (end of final notebook) for example usage.
         '''
-        pass
+        return tf.gather(x, indices)
 
     def fit(self, x, y, x_val=None, y_val=None, mini_batch_sz=512, lr=1e-4, max_epochs=1000, patience=3, val_every=1,
             verbose=True):
@@ -269,7 +270,7 @@ class NeuralDecoder:
 class SoftmaxDecoder(NeuralDecoder):
     def __init__(self, num_features, num_classes, wt_stdev=0.1):
         super().__init__(num_features, num_classes, wt_stdev)
-        
+
     def forward(self, x):
         '''
         Do the follow pass with samples x.
@@ -278,14 +279,14 @@ class SoftmaxDecoder(NeuralDecoder):
         # print(tf.shape(self.wts))
         # print(tf.shape(x))
         net_in = x @ self.wts + self.b
-        
+
         log_a = -tf.reduce_max(net_in, axis=1, keepdims=True)
         exp_net_in = tf.exp(net_in + log_a)
         sum_row = tf.reduce_sum(exp_net_in, axis=1, keepdims=True)
         net_act = exp_net_in / sum_row
-        
+
         return net_act
-    
+
     def loss(self, yh, net_act):
         '''
         Computes cross-entropy loss with true classes yh (one-hot coded) and net_act
@@ -295,18 +296,19 @@ class SoftmaxDecoder(NeuralDecoder):
         num_sample = yh.shape[0]
         # print(net_act)
         # print(yh)
-        loss = -tf.reduce_sum(tf.math.log(net_act)*yh) / num_sample
+        loss = -tf.reduce_sum(tf.math.log(net_act) * yh) / num_sample
         return loss
+
 
 class NonlinearDecoder(NeuralDecoder):
     def __init__(self, num_features, num_classes, wt_stdev=0.1, beta=0.005, loss_exp=6):
         super().__init__(num_features, num_classes, wt_stdev)
-        
+
     def one_hot(self, y, C):
         pass
-        
+
     def forward(self, x):
         pass
-    
+
     def loss(self, yh, net_act):
         pass
