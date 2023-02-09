@@ -177,7 +177,6 @@ class NeuralDecoder:
         - It may be helpful to think of `recent_val_losses` as a queue: the current loss value always gets inserted
         either at the beginning or end. The oldest value is then always on the other end of the list.
         '''
-        print("anything")
         stop = False
         if len(recent_val_losses) < patience:
             recent_val_losses.append(curr_val_loss)
@@ -186,8 +185,12 @@ class NeuralDecoder:
             recent_val_losses.append(curr_val_loss)
             recent_val_losses.pop(0)
             
-            if recent_val_losses[0] < recent_val_losses[1] and recent_val_losses[0] < recent_val_losses[2]
-            and recent_val_losses[0] < recent_val_losses[3]:
+            decreasing = False
+            for i in range(1, len(recent_val_losses)):
+                if recent_val_losses[0] > recent_val_losses[i]:
+                    decreasing = True
+            
+            if decreasing == False:
                 stop = True
                 
         return recent_val_losses, stop
