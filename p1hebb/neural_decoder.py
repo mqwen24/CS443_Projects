@@ -313,11 +313,9 @@ class NeuralDecoder:
             yh = self.one_hot(y=y_mini_batch, C=self.num_classes, off_value=0)
             loss = self.loss(yh, net_act)
             
-            print(net_act.shape)
-            print(yh.shape)
-            print(x_mini_batch.shape)
+            x_mini_batch_t = tf.transpose(x_mini_batch)
             
-            d_wts = tf.reduce_sum((net_act - yh)*x_mini_batch, axis=0)
+            d_wts = tf.reduce_sum(x_mini_batch_t @ (net_act - yh), axis=0)
             d_b = tf.reduce_sum(net_act - yh, axis=0)
             
             self.wts, v_wts, p_wts = self.update_wts(self.wts, d_wts, v_wts, p_wts, lr)
@@ -334,7 +332,7 @@ class NeuralDecoder:
                 
                 val_loss = self.loss(val_yh, val_net_act)
                 recent_val_losses.append(val_loss)
-                val_lost_hist.append(val_loss)
+                val_loss_hist.append(val_loss)
                 
                 val_y_pred = self.predict(x=x_val, net_act=val_net_act)
                 val_acc = self.accuracy(y_val, val_y_pred)
@@ -365,9 +363,6 @@ class SoftmaxDecoder(NeuralDecoder):
         '''
         # print(tf.shape(self.wts))
         # print(tf.shape(x))
-        print(self.wts.dtype)
-        print(x.dtype)
-        print(self.b.dtype)
         net_in = x @ self.wts + self.b
 
         log_a = -tf.reduce_max(net_in, axis=1, keepdims=True)
