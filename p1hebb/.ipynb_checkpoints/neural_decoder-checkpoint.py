@@ -339,7 +339,7 @@ class NeuralDecoder:
                     val_acc = self.accuracy(y_val, val_y_pred)
 
                     if verbose:
-                        print(f'Epoch {num_epochs}/{max_epochs}, Training Loss: {loss:.3f}, Val loss: {val_loss:.3f}, Val acc: {val_acc:.3f}%.\n')
+                        print(f'Epoch {num_epochs}/{max_epochs}, Training Loss: {loss:.2f}, Val loss: {val_loss:.2f}, Val acc: {val_acc*100:.2f}%.\n')
 
                     recent_val_losses, stop = self.early_stopping(recent_val_losses, val_loss, patience)
                 num_epochs = num_epochs + 1
