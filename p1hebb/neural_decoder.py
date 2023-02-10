@@ -28,8 +28,8 @@ class NeuralDecoder:
         '''
         # Change/set these
         self.num_classes = num_classes
-        self.wts = tf.Variable(tf.random.normal(shape=(num_features, num_classes), stddev=wt_stdev))
-        self.b = tf.Variable(tf.random.normal(shape=(num_classes,), stddev=wt_stdev))
+        self.wts = tf.cast(tf.Variable(tf.random.normal(shape=(num_features, num_classes), stddev=wt_stdev)), tf.float32)
+        self.b = tf.cast(tf.Variable(tf.random.normal(shape=(num_classes,), stddev=wt_stdev)), tf.float32)
 
     def get_wts(self):
         '''Returns the decoder wts'''
@@ -285,8 +285,8 @@ class NeuralDecoder:
             print(f'Starting to train network ....')
 
         # handling edge cases for the mini_batch_sz
-        if mini_batch_sz > n_train:
-            mini_batch_sz = n_train
+        if mini_batch_sz > N:
+            mini_batch_sz = N
         if mini_batch_sz <= 0:
             mini_batch_sz = 1
 
@@ -301,11 +301,6 @@ class NeuralDecoder:
         recent_val_losses = []
         val_loss = -1
         while stop == False:
-            if i == 0:
-                start_time = time.time()
-                
-            if verbose:
-                print("iteration: ", i)
 
             # generate mini batch
             indices = tf.random.uniform(shape=(mini_batch_sz,), minval=0, maxval=N, dtype=tf.dtypes.int32)
@@ -349,6 +344,8 @@ class NeuralDecoder:
             
             recent_val_losses, stop = self.early_stopping(recent_val_losses, val_loss, patience)
             
+            num_iter = num_iter + 1
+            
                 
         return train_loss_hist, val_loss_hist, num_epochs
 
@@ -365,6 +362,9 @@ class SoftmaxDecoder(NeuralDecoder):
         '''
         # print(tf.shape(self.wts))
         # print(tf.shape(x))
+        print(self.wts.dtype)
+        print(x.dtype)
+        print(self.b.dtype)
         net_in = x @ self.wts + self.b
 
         log_a = -tf.reduce_max(net_in, axis=1, keepdims=True)
