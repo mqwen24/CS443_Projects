@@ -181,11 +181,9 @@ class NeuralDecoder:
         '''
         stop = False
         if len(recent_val_losses) < patience:
-            print("len(recent_val_losses) < patience")
             recent_val_losses.append(curr_val_loss)
 
         else:
-            print("enter")
             recent_val_losses.append(curr_val_loss)
             recent_val_losses.pop(0)
             print(recent_val_losses)
@@ -193,7 +191,6 @@ class NeuralDecoder:
             decreasing = False
             for i in range(1, len(recent_val_losses)):
                 if recent_val_losses[0] > recent_val_losses[i]:
-                    print(recent_val_losses)
                     decreasing = True
 
             if decreasing == False:
@@ -297,7 +294,6 @@ class NeuralDecoder:
         # the number of iteration equals to the number of epoch multiply the number of batch there are in one sample
         num_iter = 0
         num_epochs = 0
-        next_epoch = 1
         stop = False
         v_wts = 0
         p_wts = 0
@@ -306,8 +302,6 @@ class NeuralDecoder:
         recent_val_losses = []
         val_loss = -1
         while stop == False:
-            print(num_iter, num_epochs, next_epoch)
-
             # generate mini batch
             indices = tf.random.uniform(shape=(mini_batch_sz,), minval=0, maxval=N, dtype=tf.dtypes.int32)
             x_mini_batch = self.extract_at_indices(x, indices)
@@ -328,25 +322,17 @@ class NeuralDecoder:
             self.b, v_b, p_b = self.update_wts(self.b, d_b, v_b, p_b, lr)
             
             train_loss_hist.append(loss)
-            
-            num_epochs = int(num_iter / (N / mini_batch_sz))
-            
-            if (num_epochs == 0) or (num_epochs == next_epoch):
-                
-                print(num_epochs)
-                print(val_every)
-                print(num_epochs % val_every)
-            
+                        
+            if (num_iter == 0) or (int(num_iter / (N / mini_batch_sz)) == num_epochs + 1):
                 if num_epochs % val_every == 0:
-                    print("hi")
-
+                    print(num_iter, num_epochs)
+                    
                     val_net_act = self.forward(x_val)
 
                     val_yh = self.one_hot(y=y_val, C=self.num_classes, off_value=0)
 
                     val_loss = self.loss(val_yh, val_net_act)
                     print(val_loss)
-                    recent_val_losses.append(val_loss)
                     val_loss_hist.append(val_loss)
 
                     val_y_pred = self.predict(x=x_val, net_act=val_net_act)
@@ -356,9 +342,8 @@ class NeuralDecoder:
                         print(f'Epoch {num_epochs}/{max_epochs}, Training Loss: {loss:.3f}, Val loss: {val_loss:.3f}, Val acc: {val_acc:.3f}%.\n')
 
                     recent_val_losses, stop = self.early_stopping(recent_val_losses, val_loss, patience)
-            
-                next_epoch = next_epoch + 1
-                
+                num_epochs = num_epochs + 1
+                            
             
             if num_epochs >= max_epochs:
                 stop = True
@@ -367,7 +352,8 @@ class NeuralDecoder:
             
                 
         return train_loss_hist, val_loss_hist, num_epochs
-
+    
+    
 
 # Suggested that SoftmaxDecoder and NonlinearDecoder go below:
 class SoftmaxDecoder(NeuralDecoder):
