@@ -215,6 +215,20 @@ class NeuralDecoder:
         Hint: Check out tf.gather. See TF tutorial from last semester (end of final notebook) for example usage.
         '''
         return tf.gather(x, indices)
+    
+    def update_wts(self, d_wts, v=0, p=0, lr=0.0001, beta1=0.9, beta2=0.999, eps=1e-8, t=0):
+        
+        v = beta1 * v + (1 - beta1)* d_wts
+        p = beta2 * p + (1 - beta2)* tf.math.square(d_wts)
+        
+        t = t + 1
+        
+        v_c = v / (1 - tf.math.pow(beta1, t))
+        p_c = p / (1 - tf.math.pow(beta2, t))
+        
+        self.wts = self.wts - ((lr * v_c) / (tf.math.sqrt(p_c) + eps))
+        
+        return v, p
 
     def fit(self, x, y, x_val=None, y_val=None, mini_batch_sz=512, lr=1e-4, max_epochs=1000, patience=3, val_every=1,
             verbose=True):
@@ -267,7 +281,7 @@ class NeuralDecoder:
         recent_val_loss_hist = []
 
         # print the verbose message:
-        if self.verbose:
+        if verbose:
             print(f'Starting to train network ....')
 
         # handling edge cases for the mini_batch_sz
@@ -277,13 +291,20 @@ class NeuralDecoder:
             mini_batch_sz = 1
 
         # the number of iteration equals to the number of epoch multiply the number of batch there are in one sample
-        num_epochs = 0
+        num_iter = 0
+        num_epoch = 0
         stop = False
+        v_wts = 0
+        p_wts = 0
+        v_b = 0
+        p_b = 0
+        recent_val_losses = []
+        val_loss = -1
         while stop == False:
             if i == 0:
                 start_time = time.time()
                 
-            if self.verbose:
+            if verbose:
                 print("iteration: ", i)
 
             # generate mini batch
@@ -297,39 +318,38 @@ class NeuralDecoder:
             yh = self.one_hot(y=y_mini_batch, C=self.num_classes, off_value=0)
             loss = self.loss(yh, net_act)
             
+            d_wts = tf.reduce_sum((net_act - yh)*x_mini_batch, axis=0)
+            d_b = tf.reduce_sum(net_act - yh, axis=0)
+            
+            v_wts, p_wts = self.update_wts(d_wts, v_wts, p_wts, lr)
+            v_b, p_b = self.update_wts(d_b, v_b, p_b, lr)
+            
             train_loss_hist.append(loss)
             
-            # do backward pass through network using the mini-batch
-            self.backward(y_mini_batch)
-
-            # compute the loss on the mini-batch, add it to our loss history list
-            self.loss_history.append(loss)
-
-            # call each layer's update wt method
-            for layer in self.layers:
-                layer.update_weights()
+            num_iter = int(n_epochs * (n_train / mini_batch_sz))
+            num_epochs = int(num_iter / (N / mini_batch_sz))
+            
+            if num_epochs % val_every == 0:
+                val_net_act = self.forward(x_val)
                 
-            if i == 0 and self.verbose:
-                runtime = time.time() - start_time
-                proj_time = runtime * num_iter
-                print(f'Iteration 0 took: {(runtime/60):.4f} minutes to complete.')
-                print(f'The projected time for completing all {num_iter} iterations is: {(proj_time/60):.4f} minutes.')
-
-            # compute the training/validation acc every "acc_freq"
-            if (i+1) % acc_freq == 0:
-                # compute training accuracy
-                train_acc = self.accuracy(inputs=x_train, y=y_train, samp_sz=n_train, mini_batch_sz=mini_batch_sz)
-                self.train_acc_history.append(train_acc)
-
-                # compute validation accuracy
-                valid_acc = self.accuracy(inputs=x_validate, y=y_validate, samp_sz=n_valid, mini_batch_sz=mini_batch_sz)
-                self.validation_acc_history.append(valid_acc)
-
-            # if verbose is true, print out loss and cycle count every "print_every" cycles
-            i_epoch = int(i / (n_train / mini_batch_sz))
-            if (i+1) % print_every == 0 and self.verbose:
-                print(f' Completed Epoch {i_epoch}/{n_epochs}.\nCompleted iteration {i}/{num_iter}.\nTraining loss: {loss:.2f}. Validation Accuracy: {valid_acc * 100:.2f}%.\n')
-        
+                val_yh = self.one_hot(y=y_val, C=self.num_classes, off_value=0)
+                
+                val_loss = self.loss(val_yh, val_net_act)
+                recent_val_losses.append(val_loss)
+                val_lost_hist.append(val_loss)
+                
+                val_y_pred = self.predict(x=x_val, net_act=val_net_act)
+                val_acc = self.accuracy(y_val, val_y_pred)
+                
+                if verbose:
+                    print(f'Epoch {num_epochs}/{max_epochs}, Training Loss: {loss:.3f}, Val loss: {val_loss:.3f}, Val acc: {val_acc:.3f}%.\n')
+            
+            if num_epochs >= max_epochs:
+                stop = True
+            
+            recent_val_losses, stop = self.early_stopping(recent_val_losses, val_loss, patience)
+            
+                
         return train_loss_hist, val_loss_hist, num_epochs
 
 
@@ -364,10 +384,7 @@ class SoftmaxDecoder(NeuralDecoder):
         # print(net_act)
         # print(yh)
         loss = -tf.reduce_sum(tf.math.log(net_act) * yh) / num_sample
-        return loss
-    
-    def backward(self, net_act, yh):
-        
+        return loss        
 
 
 class NonlinearDecoder(NeuralDecoder):
