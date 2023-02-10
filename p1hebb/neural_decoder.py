@@ -216,7 +216,7 @@ class NeuralDecoder:
         '''
         return tf.gather(x, indices)
     
-    def update_wts(self, d_wts, v=0, p=0, lr=0.0001, beta1=0.9, beta2=0.999, eps=1e-8, t=0):
+    def update_wts(self, wts, d_wts, v=0, p=0, lr=0.0001, beta1=0.9, beta2=0.999, eps=1e-8, t=0):
         
         v = beta1 * v + (1 - beta1)* d_wts
         p = beta2 * p + (1 - beta2)* tf.math.square(d_wts)
@@ -313,15 +313,18 @@ class NeuralDecoder:
             yh = self.one_hot(y=y_mini_batch, C=self.num_classes, off_value=0)
             loss = self.loss(yh, net_act)
             
+            print(net_act.shape)
+            print(yh.shape)
+            print(x_mini_batch.shape)
+            
             d_wts = tf.reduce_sum((net_act - yh)*x_mini_batch, axis=0)
             d_b = tf.reduce_sum(net_act - yh, axis=0)
             
-            self.wts, v_wts, p_wts = self.update_wts(d_wts, v_wts, p_wts, lr)
-            self.b, v_b, p_b = self.update_wts(d_b, v_b, p_b, lr)
+            self.wts, v_wts, p_wts = self.update_wts(self.wts, d_wts, v_wts, p_wts, lr)
+            self.b, v_b, p_b = self.update_wts(self.b, d_b, v_b, p_b, lr)
             
             train_loss_hist.append(loss)
             
-            num_iter = int(n_epochs * (n_train / mini_batch_sz))
             num_epochs = int(num_iter / (N / mini_batch_sz))
             
             if num_epochs % val_every == 0:
