@@ -72,7 +72,7 @@ class NeuralDecoder:
             e.g. if off_value=-1, y=[1, 0], and C=3, the one-hot vector would be:
             [[-1., 1., -1.], [-1., 1., -1.]]
         '''
-        return tf.one_hot(indices=y, depth=C, off_value=off_value)
+        return tf.cast(tf.one_hot(indices=y, depth=C, off_value=off_value), dtype=tf.float32)
 
     def accuracy(self, y_true, y_pred):
         '''Computes the accuracy of classified samples. Proportion correct
@@ -226,9 +226,9 @@ class NeuralDecoder:
         v_c = v / (1 - tf.math.pow(beta1, t))
         p_c = p / (1 - tf.math.pow(beta2, t))
         
-        self.wts = self.wts - ((lr * v_c) / (tf.math.sqrt(p_c) + eps))
+        wts = wts - ((lr * v_c) / (tf.math.sqrt(p_c) + eps))
         
-        return v, p
+        return wts, v, p
 
     def fit(self, x, y, x_val=None, y_val=None, mini_batch_sz=512, lr=1e-4, max_epochs=1000, patience=3, val_every=1,
             verbose=True):
@@ -316,8 +316,8 @@ class NeuralDecoder:
             d_wts = tf.reduce_sum((net_act - yh)*x_mini_batch, axis=0)
             d_b = tf.reduce_sum(net_act - yh, axis=0)
             
-            v_wts, p_wts = self.update_wts(d_wts, v_wts, p_wts, lr)
-            v_b, p_b = self.update_wts(d_b, v_b, p_b, lr)
+            self.wts, v_wts, p_wts = self.update_wts(d_wts, v_wts, p_wts, lr)
+            self.b, v_b, p_b = self.update_wts(d_b, v_b, p_b, lr)
             
             train_loss_hist.append(loss)
             
@@ -372,7 +372,7 @@ class SoftmaxDecoder(NeuralDecoder):
         sum_row = tf.reduce_sum(exp_net_in, axis=1, keepdims=True)
         net_act = exp_net_in / sum_row
 
-        return net_act
+        return tf.cast(net_act, dtype=tf.float32)
 
     def loss(self, yh, net_act):
         '''
