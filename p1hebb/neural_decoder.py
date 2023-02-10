@@ -27,6 +27,7 @@ class NeuralDecoder:
         NOTE: Remember to wrap your weights and bias as tf. Variables for gradient tracking!
         '''
         # Change/set these
+        self.num_classes = num_classes
         self.wts = tf.Variable(tf.random.normal(shape=(num_features, num_classes), stddev=wt_stdev))
         self.b = tf.Variable(tf.random.normal(shape=(num_classes,), stddev=wt_stdev))
 
@@ -265,6 +266,72 @@ class NeuralDecoder:
         val_loss_hist = []
         recent_val_loss_hist = []
 
+        # print the verbose message:
+        if self.verbose:
+            print(f'Starting to train network ....')
+
+        # handling edge cases for the mini_batch_sz
+        if mini_batch_sz > n_train:
+            mini_batch_sz = n_train
+        if mini_batch_sz <= 0:
+            mini_batch_sz = 1
+
+        # the number of iteration equals to the number of epoch multiply the number of batch there are in one sample
+        num_epochs = 0
+        stop = False
+        while stop == False:
+            if i == 0:
+                start_time = time.time()
+                
+            if self.verbose:
+                print("iteration: ", i)
+
+            # generate mini batch
+            indices = tf.random.uniform(shape=(mini_batch_sz,), minval=0, maxval=N, dtype=tf.dtypes.int32)
+            x_mini_batch = self.extract_at_indices(x, indices)
+            y_mini_batch = self.extract_at_indices(y, indices)
+            
+            # do forward pass through network using the mini-batch
+            net_act = self.forward(x_mini_batch)
+            
+            yh = self.one_hot(y=y_mini_batch, C=self.num_classes, off_value=0)
+            loss = self.loss(yh, net_act)
+            
+            train_loss_hist.append(loss)
+            
+            # do backward pass through network using the mini-batch
+            self.backward(y_mini_batch)
+
+            # compute the loss on the mini-batch, add it to our loss history list
+            self.loss_history.append(loss)
+
+            # call each layer's update wt method
+            for layer in self.layers:
+                layer.update_weights()
+                
+            if i == 0 and self.verbose:
+                runtime = time.time() - start_time
+                proj_time = runtime * num_iter
+                print(f'Iteration 0 took: {(runtime/60):.4f} minutes to complete.')
+                print(f'The projected time for completing all {num_iter} iterations is: {(proj_time/60):.4f} minutes.')
+
+            # compute the training/validation acc every "acc_freq"
+            if (i+1) % acc_freq == 0:
+                # compute training accuracy
+                train_acc = self.accuracy(inputs=x_train, y=y_train, samp_sz=n_train, mini_batch_sz=mini_batch_sz)
+                self.train_acc_history.append(train_acc)
+
+                # compute validation accuracy
+                valid_acc = self.accuracy(inputs=x_validate, y=y_validate, samp_sz=n_valid, mini_batch_sz=mini_batch_sz)
+                self.validation_acc_history.append(valid_acc)
+
+            # if verbose is true, print out loss and cycle count every "print_every" cycles
+            i_epoch = int(i / (n_train / mini_batch_sz))
+            if (i+1) % print_every == 0 and self.verbose:
+                print(f' Completed Epoch {i_epoch}/{n_epochs}.\nCompleted iteration {i}/{num_iter}.\nTraining loss: {loss:.2f}. Validation Accuracy: {valid_acc * 100:.2f}%.\n')
+        
+        return train_loss_hist, val_loss_hist, num_epochs
+
 
 # Suggested that SoftmaxDecoder and NonlinearDecoder go below:
 class SoftmaxDecoder(NeuralDecoder):
@@ -298,6 +365,9 @@ class SoftmaxDecoder(NeuralDecoder):
         # print(yh)
         loss = -tf.reduce_sum(tf.math.log(net_act) * yh) / num_sample
         return loss
+    
+    def backward(self, net_act, yh):
+        
 
 
 class NonlinearDecoder(NeuralDecoder):
