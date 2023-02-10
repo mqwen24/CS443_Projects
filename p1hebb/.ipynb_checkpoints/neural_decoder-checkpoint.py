@@ -28,8 +28,8 @@ class NeuralDecoder:
         '''
         # Change/set these
         self.num_classes = num_classes
-        self.wts = tf.cast(tf.Variable(tf.random.normal(shape=(num_features, num_classes), stddev=wt_stdev)), tf.float32)
-        self.b = tf.cast(tf.Variable(tf.random.normal(shape=(num_classes,), stddev=wt_stdev)), tf.float32)
+        self.wts = tf.Variable(tf.random.normal(shape=(num_features, num_classes), stddev=wt_stdev))
+        self.b = tf.Variable(tf.random.normal(shape=(num_classes,), stddev=wt_stdev))
 
     def get_wts(self):
         '''Returns the decoder wts'''
