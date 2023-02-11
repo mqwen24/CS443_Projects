@@ -376,12 +376,29 @@ class SoftmaxDecoder(NeuralDecoder):
 class NonlinearDecoder(NeuralDecoder):
     def __init__(self, num_features, num_classes, wt_stdev=0.1, beta=0.005, loss_exp=6):
         super().__init__(num_features, num_classes, wt_stdev)
+        self.beta = beta
+        self.loss_exp = loss_exp
 
     def one_hot(self, y, C):
-        pass
+        return tf.cast(tf.one_hot(indices=y, depth=C, off_value=-1), dtype=tf.float32)
 
     def forward(self, x):
-        pass
+        x = tf.nn.relu(x)
+        net_in = x @ self.wts + self.b
+        net_act = tf.math.tanh(self.beta*net_in)
+
+        return tf.cast(net_act, dtype=tf.float32)
 
     def loss(self, yh, net_act):
-        pass
+        net_act = tf.cast(net_act, tf.float32)
+        yh = tf.cast(yh, tf.float32)
+
+        print(net_act)
+
+        print(yh)
+
+        print(self.loss_exp)
+
+        loss = tf.reduce_sum(tf.abs(yh-net_act)**self.loss_exp)
+
+        return loss
