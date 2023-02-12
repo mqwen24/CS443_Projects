@@ -186,7 +186,6 @@ class NeuralDecoder:
         else:
             recent_val_losses.append(curr_val_loss)
             recent_val_losses.pop(0)
-            print(recent_val_losses)
 
             decreasing = False
             for i in range(1, len(recent_val_losses)):
@@ -303,7 +302,7 @@ class NeuralDecoder:
             # do forward pass through network using the mini-batch
             with tf.GradientTape() as tape:
                 net_act = self.forward(x_mini_batch)
-                yh = self.one_hot(y=y_mini_batch, C=self.num_classes, off_value=0)
+                yh = self.one_hot(y=y_mini_batch, C=self.num_classes)
                 loss = self.loss(yh, net_act)
 
             grads = tape.gradient(loss, (self.wts, self.b))
@@ -318,7 +317,7 @@ class NeuralDecoder:
                 if num_epochs % val_every == 0:
                     val_net_act = self.forward(x_val)
 
-                    val_yh = self.one_hot(y=y_val, C=self.num_classes, off_value=0)
+                    val_yh = self.one_hot(y=y_val, C=self.num_classes)
 
                     val_loss = self.loss(val_yh, val_net_act)
                     val_loss_hist.append(val_loss)
@@ -392,13 +391,5 @@ class NonlinearDecoder(NeuralDecoder):
     def loss(self, yh, net_act):
         net_act = tf.cast(net_act, tf.float32)
         yh = tf.cast(yh, tf.float32)
-
-        print(net_act)
-
-        print(yh)
-
-        print(self.loss_exp)
-
         loss = tf.reduce_sum(tf.abs(yh-net_act)**self.loss_exp)
-
         return loss
