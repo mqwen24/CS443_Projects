@@ -1,6 +1,6 @@
 '''hebb_net.py
 Bio-inspired neural network that implements the Hebbian learning rule and competition among neurons in the network
-YOUR NAMES HERE
+MUQING WEN, ZHOUYI QIAN
 CS443: Bio-Inspired Machine Learning
 Project 1: Hebbian Learning
 
@@ -40,11 +40,24 @@ class HebbNet:
             - If loading wts, set the wts by loading the previously saved .npy wt file.
             - Otherwise, create uniform random weights between the range `wt_minmax`. shape=(M, H).
         '''
-        pass
+        self.M = num_features
+        self.H = num_neurons
+        self.wt_min = wt_minmax[0]
+        self.wt_max = wt_minmax[1]
+        self.kth_place_inhibited = kth_place_inhibited
+        self.inhib_value = inhib_value
+        self.load_wts = load_wts
+        self.saved_wts_path = saved_wts_path
+                
+        if load_wts:
+            self.wts = np.load(saved_wts_path)
+        
+        else:
+            self.wts = np.random.uniform(low=self.wt_min, high=self.wt_max, size=(self.M, self.H))
 
     def get_wts(self):
         '''Returns the Hebbian network wts'''
-        pass
+        return self.wts
 
     def set_wts(self, wts):
         '''Replaces the Hebbian network weights with `wts` passed in as a parameter.
@@ -53,7 +66,7 @@ class HebbNet:
         -----------
         wts: ndarray. shape=(M, H). New Hebbian network weights.
         '''
-        pass
+        self.wts = wts
 
     def net_in(self, x):
         '''Computes the Hebbian network Dense net_in
@@ -66,7 +79,7 @@ class HebbNet:
         -----------
         netIn: ndarray. shape=(B, H)
         '''
-        pass
+        return x @ self.wts
 
     def net_act(self, net_in):
         '''Compute the Hebbian network activation, which is a function that reflects competition among the neurons

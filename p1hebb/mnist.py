@@ -1,6 +1,6 @@
 '''mnist.py
 Loads and preprocesses the MNIST dataset
-YOUR NAMES HERE
+MUQING WEN, ZHOUYI QIAN
 CS443: Bio-Inspired Machine Learning
 Project 1: Hebbian Learning
 '''
@@ -26,7 +26,31 @@ def get_mnist(N_val, path='data/mnist'):
     x_val (validation samples),
     y_val (validation labels)
     '''
-    pass
+    path_1 = os.path.join(path, "x_train.npy")
+    path_2 = os.path.join(path, "y_train.npy")
+    path_3 = os.path.join(path, "x_test.npy")
+    path_4 = os.path.join(path, "y_test.npy")
+    
+    x_train = np.load(path_1)
+    y_train = np.load(path_2)
+    x_test = np.load(path_3)
+    y_test = np.load(path_4)
+    
+    x_train = np.reshape(x_train, (x_train.shape[0], np.prod(x_train.shape[1:])))
+    x_test = np.reshape(x_test, (x_test.shape[0], np.prod(x_test.shape[1:])))
+    
+    x_train = x_train / 255
+    x_test = x_test / 255
+    
+    val_indx = np.random.choice(a=60000, size=100, replace=False)
+    
+    x_val = x_train[val_indx].copy()
+    y_val = y_train[val_indx].copy()
+    
+    x_train = np.delete(x_train, val_indx, axis=0)
+    y_train = np.delete(y_train, val_indx, axis=0)
+    
+    return x_train, y_train, x_test, y_test, x_val, y_val
 
 
 def preprocess_mnist(x):
