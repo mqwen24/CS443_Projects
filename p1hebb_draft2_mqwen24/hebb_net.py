@@ -44,7 +44,7 @@ class HebbNet:
         self.H = num_neurons
         self.wt_min = wt_minmax[0]
         self.wt_max = wt_minmax[1]
-        self.k = kth_place_inhibited - 1
+        self.kth_place_inhibited = kth_place_inhibited
         self.inhib_value = inhib_value
         self.load_wts = load_wts
         self.saved_wts_path = saved_wts_path
@@ -103,23 +103,10 @@ class HebbNet:
         - Remember arange indexing? It might be useful depending on your implementation strategy.
         - No loops should be needed.
         '''
-        B, H = net_in.shape
-        indx = np.arange(B)
-        # print(net_in)
-        
-        
-        sorted_indx = np.argsort(net_in, axis=1)
-        sorted_indx = np.flip(sorted_indx, axis=1)
-        # print("sorted index: ", sorted_indx)
-        max_indx = sorted_indx[:, 0]
-        # print("max index: ", max_indx)
-        kth_indx = sorted_indx[:, self.k]
-        # print("kth index: ", kth_indx)
-        net_act = np.zeros((B, H))
-        net_act[indx, kth_indx] = -self.inhib_value
-        net_act[indx, max_indx] = 1
-        
-        return net_act
+        max_indx = np.argmax(net_in, axis=1)
+        net_act = net_in.copy()
+        net_act[:, max_indx] = 1
+        pass
         
 
     def update_wts(self, x, net_in, net_act, lr, eps=1e-10):
@@ -136,9 +123,6 @@ class HebbNet:
         Tips:
         - This is definitely a scenario where you should the shapes of everything to guide you through and decide on the
         appropriate operation (elementwise multiplication vs matrix multiplication).
-        '''
-        '''
-        self.wts = self.wts + lr*net_act(x - net_act*self.wts)
         '''
         pass
 
