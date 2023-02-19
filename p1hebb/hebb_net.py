@@ -123,8 +123,10 @@ class HebbNet:
         
 
     def update_wts(self, x, net_in, net_act, lr, eps=1e-10):
-        '''Update the Hebbian network wts according to a modified Hebbian learning rule (Oja's rule). After each wt
-        update, normalize the wts by the largest wt (in absolute value). See notebook for equations.
+        '''Update the Hebbian network wts according to a modified Hebbian learning rule (competitive Oja's rule).
+        After computing the weight change based on the current mini-batch, the weight changes (gradients) are normalized
+        by the largest gradient (in absolute value). This has the effect of making the largest weight change equal in
+        absolute magnitude to the learning rate `lr`. See notebook for equations.
 
         Parameters:
         -----------
@@ -137,10 +139,9 @@ class HebbNet:
         - This is definitely a scenario where you should the shapes of everything to guide you through and decide on the
         appropriate operation (elementwise multiplication vs matrix multiplication).
         '''
-        '''
-        self.wts = self.wts + lr*net_act(x - net_act*self.wts)
-        '''
-        pass
+        d_wts = np.sum(x*net_act, axis=0) - self.wts*np.sum(net_in*net_act, axis=0)
+        
+        self.wts = self.wts / np.max(np.abs(self.wts))+eps
 
     def fit(self, x, n_epochs=1, mini_batch_sz=128, lr=2e-2, plot_wts_live=False, fig_sz=(9, 9), n_wts_plotted=(10, 10),
             print_every=1, save_wts=True):
