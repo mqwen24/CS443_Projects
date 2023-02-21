@@ -128,3 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /p1hebb/data
+/p1hebb/p1hebb_draft2_mqwen24

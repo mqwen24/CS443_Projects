@@ -105,8 +105,6 @@ class HebbNet:
         '''
         B, H = net_in.shape
         indx = np.arange(B)
-        # print(net_in)
-        
         
         sorted_indx = np.argsort(net_in, axis=1)
         sorted_indx = np.flip(sorted_indx, axis=1)
@@ -139,10 +137,13 @@ class HebbNet:
         - This is definitely a scenario where you should the shapes of everything to guide you through and decide on the
         appropriate operation (elementwise multiplication vs matrix multiplication).
         '''
-        d_wts = np.sum(x*net_act, axis=0) - self.wts*np.sum(net_in*net_act, axis=0)
+        d_wts = (np.transpose(x) @ net_act) - (self.wts * np.sum(net_in * net_act, axis=0))
         
-        self.wts = self.wts / np.max(np.abs(self.wts))+eps
-
+        d_wts = d_wts / (np.max(np.abs(d_wts)) + eps)
+        
+        self.wts = self.wts + lr*d_wts
+        
+        
     def fit(self, x, n_epochs=1, mini_batch_sz=128, lr=2e-2, plot_wts_live=False, fig_sz=(9, 9), n_wts_plotted=(10, 10),
             print_every=1, save_wts=True):
         '''Trains the Hebbian network on the training samples `x` using unsupervised Hebbian learning (no y classes required!).
@@ -151,7 +152,7 @@ class HebbNet:
         -----------
         x: ndarray. shape=(N, M). Data samples.
         n_epochs: int. Number of epochs to train the network.
-        mini_batch_sz: float. Learning rate used with Adam optimizer.
+        mini_batch_sz: int. Mini-batch size used when training the Hebbian network.
         lr: float. Learning rate used with Hebbian weight update rule
         plot_wts_live: bool. Whether to plot the weights and update throughout training every `print_every` epochs.
         save_wts: bool. Whether to save the Hebbian network wts (to self.saved_wts_path) after training finishes.
