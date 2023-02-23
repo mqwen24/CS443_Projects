@@ -15,6 +15,7 @@ class HebbNet:
     '''Single layer bio-inspired neural network in which neurons compete with each other and learning occurs via a
     variant of Hebbian learning rule (Oja's Rule).
     '''
+
     def __init__(self, num_features, num_neurons, wt_minmax=(0., 1.), kth_place_inhibited=6, inhib_value=0.4,
                  load_wts=False, saved_wts_path='export/wts.npy'):
         '''Hebbian network constructor
@@ -48,10 +49,10 @@ class HebbNet:
         self.inhib_value = inhib_value
         self.load_wts = load_wts
         self.saved_wts_path = saved_wts_path
-                
+
         if load_wts:
             self.wts = np.load(saved_wts_path)
-        
+
         else:
             self.wts = np.random.uniform(low=self.wt_min, high=self.wt_max, size=(self.M, self.H))
 
@@ -105,7 +106,7 @@ class HebbNet:
         '''
         B, H = net_in.shape
         indx = np.arange(B)
-        
+
         sorted_indx = np.argsort(net_in, axis=1)
         sorted_indx = np.flip(sorted_indx, axis=1)
         # print("sorted index: ", sorted_indx)
@@ -116,9 +117,8 @@ class HebbNet:
         net_act = np.zeros((B, H))
         net_act[indx, kth_indx] = -self.inhib_value
         net_act[indx, max_indx] = 1
-        
+
         return net_act
-        
 
     def update_wts(self, x, net_in, net_act, lr, eps=1e-10):
         '''Update the Hebbian network wts according to a modified Hebbian learning rule (competitive Oja's rule).
@@ -138,12 +138,11 @@ class HebbNet:
         appropriate operation (elementwise multiplication vs matrix multiplication).
         '''
         d_wts = (np.transpose(x) @ net_act) - (self.wts * np.sum(net_in * net_act, axis=0))
-        
+
         d_wts = d_wts / (np.max(np.abs(d_wts)) + eps)
-        
-        self.wts = self.wts + lr*d_wts
-        
-        
+
+        self.wts = self.wts + lr * d_wts
+
     def fit(self, x, n_epochs=1, mini_batch_sz=128, lr=2e-2, plot_wts_live=False, fig_sz=(9, 9), n_wts_plotted=(10, 10),
             print_every=1, save_wts=True):
         '''Trains the Hebbian network on the training samples `x` using unsupervised Hebbian learning (no y classes required!).
@@ -167,13 +166,52 @@ class HebbNet:
         - When training is done, save the wts if `save_wts` is True.
         '''
         N, M = x.shape
+        # print the verbose message:
+        print(f'Starting to train network ....')
+
+        # handling edge cases for the mini_batch_sz
+        if mini_batch_sz > N:
+            mini_batch_sz = N
+        if mini_batch_sz <= 0:
+            mini_batch_sz = 1
+
+        num_iter = 0
+        num_epochs = 0
 
         if plot_wts_live:
             fig = plt.figure(figsize=fig_sz)
 
-            # should go in training loop
-            if plot_wts_live:
-                draw_grid_image(self.wts.T, n_wts_plotted[0], n_wts_plotted[1], title=f'Net receptive fields (Epoch {e})')
-                fig.canvas.draw()
-            else:
-                print(f'Starting epoch {e}/{n_epochs}')
+        while num_epochs < n_epochs:
+            # generate mini batch
+            idx = np.random.choice(N, size=(mini_batch_sz,), replace=True, p=None)
+            x_mini_batch = x[idx, :]
+
+            # forward pass
+            net_in = self.net_in(x_mini_batch)
+            net_act = self.net_act(net_in)
+
+            # weight update
+            self.update_wts(x_mini_batch, net_in, net_act, lr)
+
+            if (num_iter == 0) or (int(num_iter / (N / mini_batch_sz)) == num_epochs + 1):
+                # should go in training loop
+                if plot_wts_live and num_epochs % print_every == 0:
+                    draw_grid_image(self.wts.T, n_wts_plotted[0], n_wts_plotted[1],
+                                    title=f'Net receptive fields (Epoch {num_epochs})')
+                    fig.canvas.draw()
+                else:
+                    print(f'Starting epoch {num_epochs+1}/{n_epochs}')
+
+                num_epochs = num_epochs + 1
+
+            num_iter = num_iter + 1
+
+        print("Training finished!")
+
+        if save_wts:
+            print("Saving weights ...")
+            with open(self.saved_wts_path, 'wb') as file:
+                np.save(file, self.wts)
+
+
+

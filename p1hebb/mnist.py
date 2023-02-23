@@ -42,7 +42,7 @@ def get_mnist(N_val, path='data/mnist'):
     x_train = x_train / 255
     x_test = x_test / 255
     
-    val_indx = np.random.choice(a=60000, size=100, replace=False)
+    val_indx = np.random.choice(a=60000, size=N_val, replace=False)
     
     x_val = x_train[val_indx].copy()
     y_val = y_train[val_indx].copy()
