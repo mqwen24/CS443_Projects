@@ -9,8 +9,6 @@ NOTE: This network should be implemented in Numpy rather than TensorFlow
 import numpy as np
 import matplotlib.pyplot as plt
 from viz import draw_grid_image
-import os
-from PIL import Image
 
 
 class HebbNet:
@@ -200,12 +198,6 @@ class HebbNet:
                 # should go in training loop
                 if plot_wts_live and num_epochs % print_every == 0:
                     # print(self.wts.T.shape, n_wts_plotted[0], n_wts_plotted[1])
-                    
-                    file_name = "epoch_" + str(num_epochs) + ".jpg"
-                    file_path = os.path.join("plot_wts_live/", file_name)
-                    img = self.np2image(self.wts)
-                    img.save(file_path)
-                    
                     draw_grid_image(x=self.wts.T, n_cols=n_wts_plotted[0], n_rows=n_wts_plotted[1], sample_dims=(28, 28, 1), title=f'Net receptive fields (Epoch {num_epochs})')
                     fig.canvas.draw()
                 else:
@@ -222,13 +214,3 @@ class HebbNet:
             with open(self.saved_wts_path, 'wb') as file:
                 np.save(file, self.wts)
 
-    def np2image(self, np_arr):
-        
-        np_img = np_arr * 255
-        np_img = np_img.astype("uint8")
-        np_img = np_img.squeeze()
-
-        img = Image.fromarray(np_img)
-        # plt.imshow(img)
-        # plt.show()
-        return img
