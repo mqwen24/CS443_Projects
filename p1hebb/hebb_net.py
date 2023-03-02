@@ -201,15 +201,13 @@ class HebbNet:
                 if plot_wts_live and num_epochs % print_every == 0:
                     # print(self.wts.T.shape, n_wts_plotted[0], n_wts_plotted[1])
                     
-                    file_name = "epoch_" + str(num_epochs) + ".jpg"
-                    file_path = os.path.join("plot_wts_live/", file_name)
-                    img = self.np2image(self.wts)
-                    img.save(file_path)
+                    # file_name = "epoch_" + str(num_epochs) + ".jpg"
+                    # file_path = os.path.join("plot_wts_live/", file_name)
+                    # img = self.np2image(self.wts)
+                    # img.save(file_path)
                     
                     draw_grid_image(x=self.wts.T, n_cols=n_wts_plotted[0], n_rows=n_wts_plotted[1], sample_dims=(28, 28, 1), title=f'Net receptive fields (Epoch {num_epochs})')
                     fig.canvas.draw()
-                else:
-                    print(f'Starting epoch {num_epochs+1}/{n_epochs}')
 
                 num_epochs = num_epochs + 1
 
