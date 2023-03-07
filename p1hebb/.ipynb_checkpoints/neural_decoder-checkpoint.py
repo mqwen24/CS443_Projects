@@ -186,7 +186,6 @@ class NeuralDecoder:
         else:
             recent_val_losses.append(curr_val_loss)
             recent_val_losses.pop(0)
-            print(recent_val_losses)
 
             decreasing = False
             for i in range(1, len(recent_val_losses)):
@@ -216,19 +215,19 @@ class NeuralDecoder:
         Hint: Check out tf.gather. See TF tutorial from last semester (end of final notebook) for example usage.
         '''
         return tf.gather(x, indices)
-    
+
     def update_wts(self, wts, d_wts, v=0, p=0, lr=0.0001, beta1=0.9, beta2=0.999, eps=1e-8, t=0):
-        
-        v = beta1 * v + (1 - beta1)* d_wts
-        p = beta2 * p + (1 - beta2)* tf.math.square(d_wts)
-        
+
+        v = beta1 * v + (1 - beta1) * d_wts
+        p = beta2 * p + (1 - beta2) * tf.math.square(d_wts)
+
         t = t + 1
-        
+
         v_c = v / (1 - tf.math.pow(beta1, t))
         p_c = p / (1 - tf.math.pow(beta2, t))
-        
+
         wts = wts - ((lr * v_c) / (tf.math.sqrt(p_c) + eps))
-        
+
         return wts, v, p
 
     def fit(self, x, y, x_val=None, y_val=None, mini_batch_sz=512, lr=1e-4, max_epochs=1000, patience=3, val_every=1,
@@ -275,12 +274,10 @@ class NeuralDecoder:
         Check for early stopping with the val loss.
         '''
         N, M = x.shape
-
         # Define loss tracking containers
         train_loss_hist = []
         val_loss_hist = []
-        recent_val_loss_hist = []
-
+        recent_val_losses = []
         # print the verbose message:
         if verbose:
             print(f'Starting to train network ....')
@@ -295,65 +292,51 @@ class NeuralDecoder:
         num_iter = 0
         num_epochs = 0
         stop = False
-        v_wts = 0
-        p_wts = 0
-        v_b = 0
-        p_b = 0
-        recent_val_losses = []
-        val_loss = -1
-        while stop == False:
+        adam = tf.optimizers.Adam(learning_rate=lr, epsilon=1e-08)
+        while not stop and num_epochs < max_epochs:
             # generate mini batch
             indices = tf.random.uniform(shape=(mini_batch_sz,), minval=0, maxval=N, dtype=tf.dtypes.int32)
             x_mini_batch = self.extract_at_indices(x, indices)
             y_mini_batch = self.extract_at_indices(y, indices)
-            
+
             # do forward pass through network using the mini-batch
-            net_act = self.forward(x_mini_batch)
-            
-            yh = self.one_hot(y=y_mini_batch, C=self.num_classes, off_value=0)
-            loss = self.loss(yh, net_act)
-            
-            x_mini_batch_t = tf.transpose(x_mini_batch)
-            
-            d_wts = tf.reduce_sum(x_mini_batch_t @ (net_act - yh), axis=0)
-            d_b = tf.reduce_sum(net_act - yh, axis=0)
-            
-            self.wts, v_wts, p_wts = self.update_wts(self.wts, d_wts, v_wts, p_wts, lr)
-            self.b, v_b, p_b = self.update_wts(self.b, d_b, v_b, p_b, lr)
-            
+            with tf.GradientTape() as tape:
+                net_act = self.forward(x_mini_batch)
+                yh = self.one_hot(y=y_mini_batch, C=self.num_classes)
+                loss = self.loss(yh, net_act)
+
+            grads = tape.gradient(loss, (self.wts, self.b))
+
+            all_params = (self.wts, self.b)
+            adam.apply_gradients(zip(grads, all_params))
+
             train_loss_hist.append(loss)
-                        
+
             if (num_iter == 0) or (int(num_iter / (N / mini_batch_sz)) == num_epochs + 1):
+
                 if num_epochs % val_every == 0:
-                    print(num_iter, num_epochs)
-                    
                     val_net_act = self.forward(x_val)
 
-                    val_yh = self.one_hot(y=y_val, C=self.num_classes, off_value=0)
+                    val_yh = self.one_hot(y=y_val, C=self.num_classes)
 
                     val_loss = self.loss(val_yh, val_net_act)
-                    print(val_loss)
                     val_loss_hist.append(val_loss)
 
                     val_y_pred = self.predict(x=x_val, net_act=val_net_act)
                     val_acc = self.accuracy(y_val, val_y_pred)
 
                     if verbose:
-                        print(f'Epoch {num_epochs}/{max_epochs}, Training Loss: {loss:.2f}, Val loss: {val_loss:.2f}, Val acc: {val_acc*100:.2f}%.\n')
+                        print(
+                            f'Epoch {num_epochs}/{max_epochs}, Training Loss: {loss:.2f}, Val loss: {val_loss:.2f}, Val acc: {val_acc * 100:.2f}%.\n')
 
                     recent_val_losses, stop = self.early_stopping(recent_val_losses, val_loss, patience)
+
                 num_epochs = num_epochs + 1
-                            
-            
-            if num_epochs >= max_epochs:
-                stop = True
-            
+
             num_iter = num_iter + 1
-            
-                
+
         return train_loss_hist, val_loss_hist, num_epochs
-    
-    
+
 
 # Suggested that SoftmaxDecoder and NonlinearDecoder go below:
 class SoftmaxDecoder(NeuralDecoder):
@@ -386,18 +369,27 @@ class SoftmaxDecoder(NeuralDecoder):
         # print(net_act)
         # print(yh)
         loss = -tf.reduce_sum(tf.math.log(net_act) * yh) / num_sample
-        return tf.get_static_value(tf.constant(loss))    
+        return loss
 
 
 class NonlinearDecoder(NeuralDecoder):
     def __init__(self, num_features, num_classes, wt_stdev=0.1, beta=0.005, loss_exp=6):
         super().__init__(num_features, num_classes, wt_stdev)
+        self.beta = beta
+        self.loss_exp = loss_exp
 
     def one_hot(self, y, C):
-        pass
+        return tf.cast(tf.one_hot(indices=y, depth=C, off_value=-1), dtype=tf.float32)
 
     def forward(self, x):
-        pass
+        x = tf.nn.relu(x)
+        net_in = x @ self.wts + self.b
+        net_act = tf.math.tanh(self.beta*net_in)
+
+        return tf.cast(net_act, dtype=tf.float32)
 
     def loss(self, yh, net_act):
-        pass
+        net_act = tf.cast(net_act, tf.float32)
+        yh = tf.cast(yh, tf.float32)
+        loss = tf.reduce_sum(tf.abs(yh-net_act)**self.loss_exp)
+        return loss
