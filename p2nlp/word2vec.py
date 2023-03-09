@@ -35,6 +35,13 @@ class Skipgram:
         self.H = num_hidden
         self.C = num_classes
 
+        self.num_classes = num_classes
+        self.y_wts = tf.Variable(tf.random.normal(shape=(num_feats, num_hidden), stddev=wt_stdev))
+        self.y_b = tf.Variable(tf.random.normal(shape=(num_feats,), stddev=wt_stdev))
+
+        self.z_wts = tf.Variable(tf.random.normal(shape=(num_hidden, num_classes), stddev=wt_stdev))
+        self.z_b = tf.Variable(tf.random.normal(shape=(num_hidden,), stddev=wt_stdev))
+
     def set_wts(self, y_wts, z_wts):
         '''Replaces the network weights with those passed in as parameters. Used by test code.
 
@@ -43,7 +50,8 @@ class Skipgram:
         y_wts: tf.Variable. shape=(M, H). New input-to-hidden layer weights.
         z_wts: tf.Variable. shape=(H, C). New hidden-to-output layer weights.
         '''
-        pass
+        self.y_wts = y_wts
+        self.z_wts = z_wts
 
     def set_b(self, y_b, z_b):
         '''Replaces the network biases with those passed in as parameters. Used by test code.
@@ -53,7 +61,8 @@ class Skipgram:
         y_b: tf.Variable. shape=(H,). New hidden layer bias.
         z_b: tf.Variable. shape=(C,). New output layer bias.
         '''
-        pass
+        self.y_b = y_b
+        self.z_b = z_b
 
     def one_hot(self, x, C):
         '''One-hot codes the vector of class labels `y`
@@ -69,7 +78,7 @@ class Skipgram:
 
         Copy-and-paste from Hebbian Learning project.
         '''
-        pass
+        return tf.cast(tf.one_hot(indices=x, depth=C), dtype=tf.float32)
 
     def multi_hot(self, y_ind_list, num_classes):
         '''Multi-hot codes the vector of class labels `y_ind_list`
@@ -92,7 +101,12 @@ class Skipgram:
         - Because you are building a constant tensor, it might be easier to build the mini-batch of multi-hot vectors in
         numpy and then convert to a TensorFlow tensor at the end.
         '''
-        pass
+        multi_hot = np.zeros((y_ind_list.shape[0], num_classes))
+
+        for i in range(len(y_ind_list)):
+            multi_hot[i, y_ind_list[i]] = 1
+
+        return tf.Variable(multi_hot, dtype=tf.float32)
 
     def forward(self, x):
         '''Performs the forward pass through the decoder network with data samples `x`
