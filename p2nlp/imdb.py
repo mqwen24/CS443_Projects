@@ -167,7 +167,31 @@ def make_target_context_word_lists(corpus, word2ind, vocab_sz, context_win_sz=2)
                                  array([0, 1, 3, 4]),
                                  array([1, 2, 4, 5]),...])
     '''
-    pass
+    target_word_int = []
+    context_words = []
+
+    for sentence in corpus:
+        for i in range(len(sentence)):
+            target_word_int.append(word2ind[sentence[i]])
+
+            # get a list of current context word
+            curr_context_word = []
+            for j in range(i-context_win_sz, i+context_win_sz+1):
+                if 0 <= j < len(sentence) and j != i:
+                    curr_context_word.append(word2ind[sentence[j]])
+
+            context_words.append(curr_context_word)
+
+    # convert python list to ndarrays
+    target_word_int = np.array(target_word_int)
+    context_words_int = np.empty(len(target_word_int), dtype=object)
+    for i in range(len(context_words)):
+        context_words_int[i] = np.array(context_words[i])
+
+    return target_word_int, context_words_int
+
+
+
 
 
 def get_imdb(path2imdb, num_reviews):
@@ -203,4 +227,15 @@ def get_imdb(path2imdb, num_reviews):
     - Make word <-> int-code lookup table(s)
     - Collect int coded target words, int-coded context words
     '''
-    pass
+    imdb = pd.read_csv(path2imdb, delimiter="\t")
+    imdb_review = imdb["review"][0:num_reviews]
+    imdb_review = list(imdb_review)
+
+    corpus = make_corpus(imdb_review)
+    unique_words = find_unique_words(corpus)
+    vocab_sz = len(unique_words)
+    word2ind = make_word2ind_mapping(unique_words)
+
+    targets_int, contexts_int = make_target_context_word_lists(corpus, word2ind, vocab_sz)
+
+    return targets_int, contexts_int, unique_words, word2ind
