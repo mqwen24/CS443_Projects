@@ -53,7 +53,16 @@ def make_corpus(data, min_sent_size=5):
     - Tokenize the sentence into individual word strings (via tokenize_words())
     - Only add a list of words to the corpus if the length is at least `min_sent_size`.
     '''
-    pass
+    corpus = []
+
+    for review in data:
+        sentences = review.split(".")
+        for sentence in sentences:
+            words_list = tokenize_words(sentence)
+            if len(words_list) >= min_sent_size:
+                corpus.append(words_list)
+
+    return corpus
 
 
 def find_unique_words(corpus):
@@ -67,7 +76,15 @@ def find_unique_words(corpus):
     -----------
     unique_words: list of unique words in the corpus.
     '''
-    pass
+    visited = set()
+    unique_words = []
+    for sentence in corpus:
+        for word in sentence:
+            if word not in visited:
+                visited.add(word)
+                unique_words.append(word)
+
+    return unique_words
 
 
 def make_word2ind_mapping(vocab):
@@ -82,7 +99,11 @@ def make_word2ind_mapping(vocab):
     -----------
     Python dictionary with key,value pairs: string,int
     '''
-    pass
+    dict = {}
+    for i in range(len(vocab)):
+        dict[vocab[i]] = i
+
+    return dict
 
 
 def make_ind2word_mapping(vocab):
@@ -97,7 +118,11 @@ def make_ind2word_mapping(vocab):
     -----------
     Python dictionary with key,value pairs: int,string
     '''
-    pass
+    dict = {}
+    for i in range(len(vocab)):
+        dict[i] = vocab[i]
+
+    return dict
 
 
 def make_target_context_word_lists(corpus, word2ind, vocab_sz, context_win_sz=2):
