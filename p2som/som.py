@@ -233,11 +233,9 @@ class SOM:
             for j in range(mini_batch_sz):
                 bmu = self.get_bmu(x_mini_batch[j])
                 self.update_wts(input_vector=x_mini_batch[j], bmu_rc=bmu, lr=lr, sigma=sigma)
-            
-            
-            decay_rate = np.exp(-i / (n_iter/2))
-            lr = self.decay_param(lr, lr_decay)
-            sigma = self.decay_param(sigma, sigma_decay)
+
+                lr = self.decay_param(lr, lr_decay)
+                sigma = self.decay_param(sigma, sigma_decay)
             
             if int(i / (N / mini_batch_sz)) > i_epoch:
                 
