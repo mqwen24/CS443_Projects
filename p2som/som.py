@@ -1,6 +1,6 @@
 '''som.py
 Self-organizing map implemented in Numpy
-YOUR NAMES HERE
+MUQING WEN, ZHOUYI QIAN
 CS443: Bio-Inspired Machine Learning
 Project 2: Word Embeddings and Self-Organizing Maps (SOMs)
 '''
@@ -46,6 +46,13 @@ class SOM:
         '''
         self.num_feats = num_feats
         self.n_rows, self.n_cols = map_sz
+        
+        self.wts = np.random.normal(loc=0.0, scale=1.0, size=(self.n_rows, self.n_cols, self.num_feats))
+        
+        norm_factor = np.sqrt(np.sum(np.square(self.wts), axis=2, keepdims=True))
+        # print(norm_factor.shape)
+        
+        self.wts = self.wts / norm_factor
 
     def get_wts(self):
         '''Returns the weight vector.
@@ -69,7 +76,10 @@ class SOM:
 
         NOTE: For efficiency, you may not use any loops.
         '''
-        pass
+        # print(np.sum(np.square(input_vector - self.wts), axis=2))
+        dists = np.sqrt(np.sum(np.square(input_vector - self.wts), axis=2))
+        # print(dists)
+        return np.unravel_index(np.argmin(dists), (self.n_rows, self.n_cols))
 
     def get_nearest_wts(self, data):
         '''Find the nearest SOM wt vector to each of data sample vectors.
@@ -82,7 +92,16 @@ class SOM:
         ----------
         ndarray. shape=(N, num_feats). The most similar weight vector for each data sample vector.
         '''
-        pass
+        N, num_feats = data.shape
+        
+        nearest_wts = np.zeros(shape=(N, num_feats))
+        # print(nearest_wts.shape)
+        # print(self.wts.shape)
+        for i in range(N):
+            bmu = self.get_bmu(data[i])
+            nearest_wts[i] = self.wts[bmu]
+        
+        return nearest_wts
 
     def gaussian(self, bmu_rc, sigma):
         '''Generates a "normalized" 2D Gaussian, where the max value is 1, and is centered on `bmu_rc`.
@@ -112,7 +131,14 @@ class SOM:
 
         NOTE: For efficiency, you should not use any for loops.
         '''
-        pass
+        row, col = bmu_rc
+        row_grid, col_grid = np.meshgrid(np.arange(self.n_rows), np.arange(self.n_cols), indexing="ij")
+        dist_rc =  np.sqrt(np.square(row - row_grid) + np.square(col - col_grid))
+        dist2_rc = np.square(dist_rc)
+        
+        denom = 2* np.square(sigma)
+        gaussian = np.exp(-dist2_rc / denom)
+        return gaussian
 
     def update_wts(self, input_vector, bmu_rc, lr, sigma):
         '''Applies the SOM update rule to change the BMU (and neighboring units') weights,
@@ -128,7 +154,10 @@ class SOM:
 
         NOTE: For efficiency, you should not use any for loops.
         '''
-        pass
+        gaussian = self.gaussian(bmu_rc, sigma)
+        gaussian = np.expand_dims(gaussian, axis=2)
+        gap = input_vector - self.wts
+        self.wts = self.wts + lr* gaussian * gap
 
     def decay_param(self, hyperparam, rate):
         '''Takes a hyperparameter (e.g. lr, sigma) and applies a time-dependent decay function.
@@ -142,7 +171,8 @@ class SOM:
         ----------
         float. The decayed parameter.
         '''
-        pass
+        p = rate* hyperparam
+        return p
 
     def fit(self, x, n_epochs, lr=0.2, lr_decay=0.9, sigma=10, sigma_decay=0.9, print_every=1, verbose=True):
         '''Train the SOM on data
@@ -174,8 +204,50 @@ class SOM:
         - Within each epoch: compute the BMU of each data sample, update its weights and those of its neighbors, and
         decay the learning rate and Gaussian neighborhood sigma.
         '''
-        pass
+        N = x.shape[0]
+        
+        # print the verbose message:
+        if verbose:
+            print(f'Starting to train network ....')
+            
+        mini_batch_sz = N
 
+        # handle edge cases for the mini_batch_sz
+        if mini_batch_sz > N:
+            mini_batch_sz = N
+        if mini_batch_sz <= 0:
+            mini_batch_sz = 1
+            
+        n_iter = int(n_epochs * (N / mini_batch_sz))
+        
+        # the number of iteration equals to the number of epoch multiply the number of batch there are in one sample
+        i_epoch = -1
+        
+        for i in range(n_iter):
+            # generate mini batch
+            idx = np.random.choice(N, size=mini_batch_sz, replace=False)
+            x_mini_batch = x[idx, :]
+            
+            # nearest_wts = self.get_nearest_wts(x_mini_batch)
+            
+            for j in range(mini_batch_sz):
+                bmu = self.get_bmu(x_mini_batch[j])
+                self.update_wts(input_vector=x_mini_batch[j], bmu_rc=bmu, lr=lr, sigma=sigma)
+            
+            
+            decay_rate = np.exp(-i / (n_iter/2))
+            lr = self.decay_param(lr, lr_decay)
+            sigma = self.decay_param(sigma, sigma_decay)
+            
+            if int(i / (N / mini_batch_sz)) > i_epoch:
+                
+                i_epoch = i_epoch + 1
+
+                if i_epoch % print_every == 0 and verbose:
+                    print(
+                        f'Epoch {i_epoch}/{n_epochs}, Learning rate: {lr:.4f}%, Sigma: {sigma:.4f}%.')
+
+                
     def error(self, data):
         '''Computes the quantization error: average error incurred by approximating all data vectors
         with the weight vector of the BMU.
