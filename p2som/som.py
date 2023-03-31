@@ -242,8 +242,9 @@ class SOM:
                 i_epoch = i_epoch + 1
 
                 if i_epoch % print_every == 0 and verbose:
+                    error = self.error(x_mini_batch)
                     print(
-                        f'Epoch {i_epoch}/{n_epochs}, Learning rate: {lr:.4f}%, Sigma: {sigma:.4f}%.')
+                        f'Epoch {i_epoch}/{n_epochs}, Learning rate: {lr:.4f}%, Sigma: {sigma:.4f}%, Error: {error:.4f}.')
 
                 
     def error(self, data):
@@ -262,7 +263,15 @@ class SOM:
         - Progressively average the Euclidean distance between each data vector
         and the BMU weight vector.
         '''
-        pass
+        N = data.shape[0]
+        total_error = 0
+        for i in range(N):
+            r, c = self.get_bmu(data[i])
+            error = np.sqrt(np.sum(np.square(data[i] - self.wts[r, c]), axis=0))
+            total_error = total_error + error
+        
+        avg_err = total_error / N
+        return avg_err
 
     def u_matrix(self):
         '''Compute U-matrix, the distance each SOM unit wt and that of its 8 local neighbors.
@@ -275,4 +284,37 @@ class SOM:
         NOTE: Remember to normalize the U-matrix so that its range of values always span [0, 1].
 
         '''
-        pass
+        rows, cols, M = self.wts.shape
+        u_matrix = np.zeros(shape=(rows, cols))
+        dict_neigh = {}
+        max_val = 0
+        
+        for i in range(rows):
+            for j in range(cols):
+                r1, r2, c1, c2 = i-1, i+2, j-1, j+2
+                
+                if r1 < 0:
+                    r1 = 0
+                if r2 > rows:
+                    r2 = rows
+                if c1 < 0:
+                    c1 = 0
+                if c2 > cols:
+                    c2 = cols
+                
+                neighb = self.wts[r1:r2, c1:c2]
+                num_neighb = neighb.shape[0] * neighb.shape[1]
+                
+                if num_neighb in dict_neigh:
+                    dict_neigh[num_neighb] = dict_neigh[num_neighb] + 1
+                else:
+                    dict_neigh[num_neighb] = 1
+                
+                u_matrix[i, j] = np.sqrt(np.sum(np.square(neighb - self.wts[i, j]))) / num_neighb
+                
+                if u_matrix[i, j] > max_val:
+                    max_val = u_matrix[i, j]
+        
+        u_matrix = u_matrix / max_val
+                
+        return u_matrix, dict_neigh
