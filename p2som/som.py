@@ -244,7 +244,7 @@ class SOM:
                 if i_epoch % print_every == 0 and verbose:
                     error = self.error(x_mini_batch)
                     print(
-                        f'Epoch {i_epoch}/{n_epochs}, Learning rate: {lr:.4f}%, Sigma: {sigma:.4f}%, Error: {error:.4f}.')
+                        f'Epoch {i_epoch}/{n_epochs}, Learning rate: {lr:.4f}, Sigma: {sigma:.4f}, Error: {error:.4f}.')
 
                 
     def error(self, data):
