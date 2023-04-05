@@ -29,32 +29,36 @@ class Joint:
 
         TODO: Make instance variables for all parameters
         '''
-        pass
+        self.name = name
+        self.initial_angle = initial_angle
+        self.curr_angle = self.initial_angle
+        self.dist2shoulder = dist2shoulder
+        self.angle_limits = angle_limits
 
     def get_name(self):
         '''Returns the name (str) of the joint'''
-        pass
+        return self.name
 
     def get_limits(self):
         '''Returns the min/max ergonomic angle range of the joint'''
-        pass
+        return self.angle_limits
 
     def get_dist2shoulder(self):
         '''Returns the distance of the joint along the arm to the shoulder'''
-        pass
+        return self.dist2shoulder
 
     def get_angle(self):
         '''Returns the current joint angle'''
-        pass
+        return self.curr_angle
 
     def reset_angle(self):
         '''Resets the current joint angle back to its initial angle (regardless of current angle).'''
-        pass
+        self.curr_angle = self.initial_angle
 
     def randomize_angle(self):
         '''Generates and sets the joint angle to a (uniform) random value within the ergonomic range (within bounds).'''
         # generate random angle within bounds.
-        pass
+        self.curr_angle = np.random.uniform(self.angle_limits[0], self.angle_limits[1])
 
     def update_angle(self, muscle_pair_acts, angle_step=0.05, oob_correction=(0.05, 0.1)):
         '''Updates the joint angle based on the DIFFERENCE in activation between the agonist/antagonist muscle pair
@@ -80,7 +84,12 @@ class Joint:
         - Check if the angle goes out-of-bounds. If so, make a random correction (see `oob_correction`) toward the valid
         angle range.
         '''
-        pass
+        self.curr_angle = self.curr_angle + angle_step*(muscle_pair_acts[1] - muscle_pair_acts[0])
+
+        if self.curr_angle < self.angle_limits[0]:
+            self.curr_angle += np.random.uniform(oob_correction[0], oob_correction[1])
+        elif self.curr_angle > self.angle_limits[1]:
+            self.curr_angle -= np.random.uniform(oob_correction[0], oob_correction[1])
 
 
 class EndEffector:
@@ -95,12 +104,13 @@ class EndEffector:
         dist2shoulder: float. Total distance between the end effector and the shoulder joint along the arm segments.
             This is NOT Euclidean distance.
         '''
-        pass
+        self.name = name
+        self.dist2shoulder = dist2shoulder
 
     def get_name(self):
         '''Returns the name of the EndEffector'''
-        pass
+        return self.name
 
     def get_dist2shoulder(self):
         '''Returns the distance of the EndEffector along the arm to the shoulder joint'''
-        pass
+        return self.dist2shoulder
