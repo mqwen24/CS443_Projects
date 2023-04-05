@@ -25,14 +25,17 @@ class Arm:
         '''
         # Placeholder for ArmPlot object used to visualize arm position in workspace. Keep this here.
         self.curr_plot = None
+        self.joints = joints
+        self.effector = effector
+        self.outstar_net = outstar_net
 
     def get_joints(self):
         '''Returns the list of `Joint` objects that make up the arm.'''
-        pass
+        return self.joints
 
     def get_effector(self):
         '''Returns the `EndEffector` object associated with the arm.'''
-        pass
+        return self.effector
 
     def get_wts(self):
         '''Returns the weights learned by the Outstar network.
@@ -56,15 +59,39 @@ class Arm:
         SEGMENT between each joint and the adjacent joint that is one joint closer to the shoulder. For example, l1 is
         the length (distance) between the elbow and wrist joints.
         '''
-        pass
+        shoulder = self.joints[0]
+        elbow = self.joints[1]
+        wrist = self.joints[2]
+
+        l0 = elbow.get_dist2shoulder() - shoulder.get_dist2shoulder()
+        l1 = wrist.get_dist2shoulder() - elbow.get_dist2shoulder()
+        l2 = self.effector.get_dist2shoulder() - wrist.get_dist2shoulder()
+
+        shoulder_angle = shoulder.get_angle()
+        elbow_angle = elbow.get_angle()
+        wrist_angle = wrist.get_angle()
+
+        shoulder_pos = [0, 0]
+        # print(shoulder_angle)
+        elbow_pos = [l0*np.cos(shoulder_angle), l0*np.sin(shoulder_angle)]
+        wrist_pos = [elbow_pos[0]+l1*np.cos(shoulder_angle+elbow_angle),
+                     elbow_pos[1]+l1*np.sin(shoulder_angle+elbow_angle)]
+        hand_pos = [wrist_pos[0]+l2*np.cos(shoulder_angle+elbow_angle+wrist_angle),
+                    wrist_pos[1]+l2*np.sin(shoulder_angle+elbow_angle+wrist_angle)]
+
+        pos = np.array([shoulder_pos, elbow_pos, wrist_pos, hand_pos])
+
+        return pos
 
     def reset_joint_angles(self):
         '''Resets the angle of each joint in the arm to its initial angle.'''
-        pass
+        for joint in self.joints:
+            joint.reset_angle()
 
     def randomize_joint_angles(self):
         '''Sets the angle of each joint to a random value within the applicable ergonomic range.'''
-        pass
+        for joint in self.joints:
+            joint.randomize_angle()
 
     def get_movement_dir(self, eff_pos_2, eff_pos_1):
         '''Compute the movement direction of the end effector (hand) between two (x, y ) positions (`eff_pos_2` and
