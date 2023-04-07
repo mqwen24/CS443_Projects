@@ -24,11 +24,12 @@ class Muscles(Sink):
         n_ag_ant_pairs. int. Number of agonist/antagonist muscle pairs in the arm. Because this is in terms of PAIRS,
             there are twice as many total number of muscles in the arm.
         '''
-        pass
+        self.num_units = 2 * n_ag_ant_pairs
+        self.acts = self.randomize_acts()
 
     def get_num_units(self):
         '''Returns the total number of muscles in the arm.'''
-        pass
+        return self.num_units
 
     def net_in(self, net_act_source=None):
         '''Computes the net input for all of the muscles.
@@ -63,7 +64,31 @@ class Muscles(Sink):
         ndarray. shape=(num_total_muscles,). Array of random activations for each of the (6) muscles. Only one random
         activation in each agonist/antagonist muscle pair. Each nonzero activation is a random number between 0 and 1.
         '''
-        pass
+        num_muscles = self.num_units
+        num_pairs = int(self.num_units / 2)
+        
+        rand_nums = np.random.uniform(low=0.0, high=1.0, size=(num_pairs,))
+        # print(rand_nums)
+        
+        rand_pos = np.array([])
+        for i in range(num_pairs):
+            pos = np.random.randint(low=2*i, high=2*i+2, size=(1,))
+            rand_pos = np.hstack([rand_pos, pos])
+        
+        #pos1 = np.random.randint(low=0, high=2, size=(1,))
+        #pos2 = np.random.randint(low=2, high=4, size=(1,))
+        #pos3 = np.random.randint(low=4, high=6, size=(1,))
+        #rand_pos = np.hstack([pos1, pos2, pos3])
+        
+        rand_pos = rand_pos.astype(int)
+        # print(rand_pos)
+        
+        rand_acts = np.zeros(shape=(num_muscles,))
+        rand_acts[rand_pos] = rand_nums
+        #print(rand_acts)
+        
+        return rand_acts
+        
 
     def net_act(self, net_in, net_act_source=None):
         '''Computes the activation for all of the muscles.
@@ -94,4 +119,7 @@ class Muscles(Sink):
         -----------
         ndarray. shape=(num_total_muscles,). Activation of each of the (6) muscles.
         '''
-        pass
+        if net_act_source is None:
+            self.acts = self.randomize_acts()
+        
+        return self.acts

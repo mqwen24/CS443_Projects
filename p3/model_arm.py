@@ -66,7 +66,7 @@ class Arm:
         l0 = elbow.get_dist2shoulder() - shoulder.get_dist2shoulder()
         l1 = wrist.get_dist2shoulder() - elbow.get_dist2shoulder()
         l2 = self.effector.get_dist2shoulder() - wrist.get_dist2shoulder()
-
+        
         shoulder_angle = shoulder.get_angle()
         elbow_angle = elbow.get_angle()
         wrist_angle = wrist.get_angle()

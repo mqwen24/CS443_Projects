@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Ellipse
 
+from IPython import display
 
 class ArmPlot:
     '''Makes a dynamic, animated plot of the arm and targets in the workspace.'''
@@ -79,6 +80,11 @@ class ArmPlot:
         ax_c.legend(loc='lower right')
 
         self.fig.canvas.draw()
+        # time.sleep(0.05)
+        
+        
+        display.clear_output(wait=True)
+        display.display(self.fig)
         time.sleep(0.05)
 
 

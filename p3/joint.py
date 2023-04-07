@@ -104,7 +104,7 @@ class EndEffector:
         dist2shoulder: float. Total distance between the end effector and the shoulder joint along the arm segments.
             This is NOT Euclidean distance.
         '''
-        self.name = name
+        self.name = name        
         self.dist2shoulder = dist2shoulder
 
     def get_name(self):
