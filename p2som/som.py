@@ -5,7 +5,7 @@ CS443: Bio-Inspired Machine Learning
 Project 2: Word Embeddings and Self-Organizing Maps (SOMs)
 '''
 import numpy as np
-
+from pca import PCA
 
 def lin2sub(ind, the_shape):
     '''Utility function that takes a linear index and converts it to subscripts.
@@ -53,6 +53,28 @@ class SOM:
         # print(norm_factor.shape)
         
         self.wts = self.wts / norm_factor
+    
+    def initialize_wts_with_pc(self, data):
+        pca = PCA(data)
+        pca.test_print()
+        data = pca.normalize_separately(data)
+        cov = pca.covariance_matrix(data)
+        # print(cov)
+        e_vals, e_vecs = np.linalg.eig(cov)
+        idx = e_vals.argsort()[::-1]
+        e_vals = e_vals[idx]
+        e_vecs = e_vecs[:,idx]
+        
+        pc1 = e_vecs[:, 0]
+        pc2 = e_vecs[:, 1]
+        
+        xs = np.linspace(start=-1, stop=1, num=self.n_rows)
+        ys = np.linspace(start=-1, stop=1, num=self.n_cols)
+        
+        self.wts = np.zeros(shape=(self.n_rows, self.n_cols, self.num_feats))
+        for i in range(self.n_rows):
+            for j in range(self.n_cols):
+                self.wts[i, j, :] = xs[i]* pc1 + ys[j]* pc2
 
     def get_wts(self):
         '''Returns the weight vector.
@@ -80,6 +102,42 @@ class SOM:
         dists = np.sqrt(np.sum(np.square(input_vector - self.wts), axis=2))
         # print(dists)
         return np.unravel_index(np.argmin(dists), (self.n_rows, self.n_cols))
+    
+    def get_bm_words(self, data):
+        N, num_feats = data.shape
+        bmu_dict = {}
+        for i in range(N):
+            bmu = self.get_bmu(data[i])
+            if bmu in bmu_dict:
+                bmu_dict[bmu].append(i)
+            else:
+                bmu_dict[bmu] = [i]
+                
+        return bmu_dict
+    
+    def get_nearest_words(self, word_vec, bmu_dict):
+        bmu = self.get_bmu(word_vec)
+        list_w = bmu_dict[bmu]
+        
+        print(list_w)
+        
+        r1, r2, c1, c2 = bmu[0]-11, bmu[0]+12, bmu[1]-11, bmu[1]+12
+                
+        if r1 < 0:
+            r1 = 0
+        if r2 > self.n_rows:
+            r2 = self.n_rows
+        if c1 < 0:
+            c1 = 0
+        if c2 > self.n_cols:
+            c2 = self.n_cols
+            
+        for i in range(r1, r2):
+            for j in range(c1, c2):
+                if (i, j) in bmu_dict:
+                    list_w = list_w + bmu_dict[(i, j)]
+                
+        return list_w
 
     def get_nearest_wts(self, data):
         '''Find the nearest SOM wt vector to each of data sample vectors.
@@ -265,13 +323,17 @@ class SOM:
         '''
         N = data.shape[0]
         total_error = 0
-        for i in range(N):
-            r, c = self.get_bmu(data[i])
-            error = np.sqrt(np.sum(np.square(data[i] - self.wts[r, c]), axis=0))
-            total_error = total_error + error
         
-        avg_err = total_error / N
-        return avg_err
+        wts = self.get_nearest_wts(data)
+        dist = np.sqrt(np.sum(np.square(data - wts), axis=1))
+        error = np.sum(dist, axis=0) / N
+#         for i in range(N):
+#             r, c = self.get_bmu(data[i])
+#             error = np.sqrt(np.sum(np.square(data[i] - self.wts[r, c]), axis=0))
+#             total_error = total_error + error
+        
+#         avg_err = total_error / N
+        return error
 
     def u_matrix(self):
         '''Compute U-matrix, the distance each SOM unit wt and that of its 8 local neighbors.

@@ -64,7 +64,7 @@ class Skipgram:
         self.y_b = y_b
         self.z_b = z_b
 
-    def one_hot(self, x, C):
+    def one_hot(self, y, C):
         '''One-hot codes the vector of class labels `y`
 
         Parameters:
@@ -78,7 +78,11 @@ class Skipgram:
 
         Copy-and-paste from Hebbian Learning project.
         '''
-        return tf.cast(tf.one_hot(indices=x, depth=C), dtype=tf.float32)
+        one_hot = np.zeros((len(y), C))
+        x_cor = np.arange(len(y))
+        one_hot[x_cor, y] = 1
+        # tf.cast(tf.one_hot(indices=x, depth=C), dtype=tf.float32)
+        return tf.Variable(one_hot, dtype=tf.float32)
 
     def multi_hot(self, y_ind_list, num_classes):
         '''Multi-hot codes the vector of class labels `y_ind_list`
@@ -192,6 +196,14 @@ class Skipgram:
         Copy-and-paste from Hebbian Learning project.
         '''
         return tf.gather(x, indices)
+    
+    def predict(self, x):
+        x_1h = self.one_hot(x, self.C)
+        # print(x_1h.shape)
+        net_in = self.forward(x_1h)
+        pred = np.argsort(net_in, axis=1)[:, :10]
+        return pred
+    
 
     def fit(self, x, y, mini_batch_sz=512, lr=1e-2, n_epochs=400, print_every=100, verbose=True):
         '''Trains the Skip-gram network on the training samples `x` (int-coded target words) and associated labels `y`

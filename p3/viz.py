@@ -82,7 +82,6 @@ class ArmPlot:
         self.fig.canvas.draw()
         # time.sleep(0.05)
         
-        
         display.clear_output(wait=True)
         display.display(self.fig)
         time.sleep(0.05)
