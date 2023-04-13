@@ -43,22 +43,32 @@ def get_dataset(path2folder='data/enron/spam', num_emails=20):
 
     num_emails = min(len(file_contents), num_emails)
 
-    email_dat = []
-    for i in range(num_emails):
-        # split the email by punctuation marks using regular expressions and remove punctuation
+    email_dat = []  # initialize an empty list to store the extracted sentences
+
+    for i in range(num_emails):  # iterate over each email in the dataset
+        # find all sentences in the email based on punctuation marks using a regular expression
         sentences = re.findall(r"[\w\s]+[.!?;]+", file_contents[i])
+        # remove all punctuation marks from each sentence using a regular expression
         sentences = [re.sub(r'[^\w\s]', '', s) for s in sentences]
+        # remove leading/trailing whitespace and newline characters from each sentence
         sentences = [s.strip().replace('\n', '') for s in sentences]
 
-        for sentence in sentences:
+        for sentence in sentences:  # iterate over each sentence in the email
+            # add the sentence to the email_dat list
             email_dat.append(sentence)
 
     # build return variables
+
+    # create a corpus (list of words) from the list of sentences
     corpus = make_corpus(email_dat)
+    # find all unique words in the corpus
     unique_words = find_unique_words(corpus)
+    # determine the size of the vocabulary (number of unique words)
     vocab_sz = len(unique_words)
+    # create a mapping from each unique word to its index in the vocabulary
     word2ind = make_word2ind_mapping(unique_words)
 
+    # create lists of target and context word indices for each word in the corpus
     targets_int, contexts_int = make_target_context_word_lists(corpus, word2ind, vocab_sz)
     return targets_int, contexts_int, unique_words, word2ind
 

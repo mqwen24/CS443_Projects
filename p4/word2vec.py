@@ -286,7 +286,7 @@ class Skipgram:
 
                 if i_epoch % print_every == 0 and verbose:
                     print(
-                        f'Epoch {i_epoch}/{n_epochs}, Training Loss: {loss:.2f}%.')
+                        f'Epoch {i_epoch}/{n_epochs}, Training Loss: {loss:.2f}.')
 
                 i_epoch = i_epoch + 1
 
