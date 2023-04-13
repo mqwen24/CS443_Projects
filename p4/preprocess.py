@@ -9,7 +9,7 @@ import os
 from imdb import make_corpus, find_unique_words, make_word2ind_mapping, make_target_context_word_lists
 
 
-def get_dataset(path2folder, num_emails):
+def get_dataset(path2folder='data/enron/spam', num_emails=20):
     """
     This function will process emails in the folder indicated and return stuff necessary for the skipgram
     Parameters:
