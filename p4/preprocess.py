@@ -9,7 +9,35 @@ import os
 from imdb import make_corpus, find_unique_words, make_word2ind_mapping, make_target_context_word_lists
 
 
-def get_dataset(path2folder='data/enron/spam', num_emails=20):
+def extract_sentences_from_path(path2folder='data/enron/spam', file_indices_to_extract=[]):
+    # List all the files in the directory
+    files = os.listdir(path2folder)
+
+    # Load the contents of each file into a list of strings
+    file_contents = []
+    for index in file_indices_to_extract:
+        file_path = os.path.join(path2folder, files[index])
+        with open(file_path, "r") as file:
+            file_contents.append(file.read())
+
+    email_dat = []  # initialize an empty list to store the extracted sentences
+
+    for i in range(len(file_contents)):  # iterate over each email in the dataset
+        # find all sentences in the email based on punctuation marks using a regular expression
+        sentences = re.findall(r"[\w\s]+[.!?;]+", file_contents[i])
+        # remove all punctuation marks from each sentence using a regular expression
+        sentences = [re.sub(r'[^\w\s]', '', s) for s in sentences]
+        # remove leading/trailing whitespace and newline characters from each sentence
+        sentences = [s.strip().replace('\n', '') for s in sentences]
+
+        for sentence in sentences:  # iterate over each sentence in the email
+            # add the sentence to the email_dat list
+            email_dat.append(sentence)
+
+    return email_dat
+
+
+def get_dataset(path2folder1='data/enron/spam', path2folder2=None, num_emails=20):
     """
     This function will process emails in the folder indicated and return stuff necessary for the skipgram
     Parameters:
@@ -30,37 +58,25 @@ def get_dataset(path2folder='data/enron/spam', num_emails=20):
     unique_words: List of unique words in the corpus.
     word2ind: Dictionary with key,value pairs: string,int mapping word to int-code.
     """
-
     # List all the files in the directory
-    files = os.listdir(path2folder)
+    files = os.listdir(path2folder1)
 
-    # Load the contents of each file into a list of strings
-    file_contents = []
-    for file_name in files:
-        file_path = os.path.join(path2folder, file_name)
-        with open(file_path, "r") as file:
-            file_contents.append(file.read())
+    num_emails = min(len(files), num_emails)
 
-    num_emails = min(len(file_contents), num_emails)
+    file_indices_to_extract = list(range(num_emails))
 
-    email_dat = []  # initialize an empty list to store the extracted sentences
-
-    for i in range(num_emails):  # iterate over each email in the dataset
-        # find all sentences in the email based on punctuation marks using a regular expression
-        sentences = re.findall(r"[\w\s]+[.!?;]+", file_contents[i])
-        # remove all punctuation marks from each sentence using a regular expression
-        sentences = [re.sub(r'[^\w\s]', '', s) for s in sentences]
-        # remove leading/trailing whitespace and newline characters from each sentence
-        sentences = [s.strip().replace('\n', '') for s in sentences]
-
-        for sentence in sentences:  # iterate over each sentence in the email
-            # add the sentence to the email_dat list
-            email_dat.append(sentence)
-
-    # build return variables
+    email_dat1 = extract_sentences_from_path(path2folder1, file_indices_to_extract)
 
     # create a corpus (list of words) from the list of sentences
-    corpus = make_corpus(email_dat)
+    corpus = make_corpus(email_dat1)
+
+    # merge another corpus if there's any
+    if path2folder2 is not None:
+        email_dat2 = extract_sentences_from_path(path2folder2, file_indices_to_extract)
+        corpus2 = make_corpus(email_dat2)
+        for sentence in corpus2:
+            corpus.append(sentence)
+
     # find all unique words in the corpus
     unique_words = find_unique_words(corpus)
     # determine the size of the vocabulary (number of unique words)
