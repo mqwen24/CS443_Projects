@@ -91,3 +91,4 @@ def get_dataset(path2folder1='data/enron/spam', path2folder2=None, num_emails=20
 
 if __name__ == "__main__":
     get_dataset('data/enron/spam', 100)
+
