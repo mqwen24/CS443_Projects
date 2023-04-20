@@ -1,24 +1,28 @@
-import keras
 import numpy as np
-import matplotlib.pyplot as plt
-import tensorflow as tf
 
-import preprocess
-import word2vec
 from imdb import make_corpus, find_unique_words, make_word2ind_mapping, make_target_context_word_lists
-import som
+from tqdm import tqdm
 
+def standardize_dataset(data):
+    mean = np.average(data)
+    std = np.std(data)
 
-def predict_email(email_data, labels, mlp_net, skipgram, word2ind, min_num_of_words):
+    data -= mean
+    data /= std
+
+    return data
+
+def predict_email(email_data, labels, mlp_net, skipgram, word2ind, min_num_of_words=10):
     num_of_prediction = 0
     num_of_correct_prediction = 0
-    for i in range(len(email_data)):
+    for i in tqdm(range(len(email_data))):
         corpus = email_data[i]
         unique_words = find_unique_words(corpus)
         x_test = skipgram.get_all_word_vectors(word2ind, unique_words)
 
-        if x_test.shape[0] > 0:
-            net_act = mlp_net.predict(x_test)
+        x_test = standardize_dataset(x_test)
+        if x_test.shape[0] > 0 and len(unique_words) >= min_num_of_words:
+            net_act = mlp_net.predict(x_test, verbose=0)
 
             curr_result = 0
 
@@ -32,6 +36,6 @@ def predict_email(email_data, labels, mlp_net, skipgram, word2ind, min_num_of_wo
             if curr_result == labels[i]:
                 num_of_correct_prediction += 1
 
-    print(num_of_correct_prediction/num_of_prediction)
+    print("prediction accuracy:", num_of_correct_prediction/num_of_prediction)
 
 
