@@ -12,7 +12,7 @@ def standardize_dataset(data):
 
     return data
 
-def predict_email(email_data, labels, mlp_net, skipgram, word2ind, min_num_of_words=10):
+def predict_email(email_data, labels, mlp_net, skipgram, word2ind, min_num_of_words=10, average=None, std=None):
     num_of_prediction = 0
     num_of_correct_prediction = 0
     for i in tqdm(range(len(email_data))):
@@ -20,7 +20,10 @@ def predict_email(email_data, labels, mlp_net, skipgram, word2ind, min_num_of_wo
         unique_words = find_unique_words(corpus)
         x_test = skipgram.get_all_word_vectors(word2ind, unique_words)
 
-        x_test = standardize_dataset(x_test)
+        if average is not None and std is not None:
+            x_test -= average
+            x_test /= std
+
         if x_test.shape[0] > 0 and len(unique_words) >= min_num_of_words:
             net_act = mlp_net.predict(x_test, verbose=0)
 
