@@ -38,8 +38,12 @@ class MotorNeurons(Source):
         - Call self.initialize_pref_angles to set an instance variance for the array that contains each neuron's
         preferred combination of joint angles.
         '''
-        pass
+        self.joints = joints
+        self.n_joint_angle_prefs = n_joint_angle_prefs
+        self.n_dir_angle_prefs = n_dir_angle_prefs
+        self.n_winners = n_winners
 
+        self.pref_angles = self.initialize_pref_angles(self.joints, self.n_joint_angle_prefs, self.n_dir_angle_prefs)
     def get_num_units(self):
         '''Returns the number of motorneurons in the layer.
 
@@ -49,7 +53,7 @@ class MotorNeurons(Source):
             and preferred hand movement directions. In the default configuration with 7 preferred angles per joint and
             30 preferred hand movement directions, the total number of neurons is 10,290 (do NOT hardcode this!).
         '''
-        pass
+        return self.n_joint_angle_prefs**3*self.n_dir_angle_prefs
 
     def get_pref_angles(self):
         '''Returns the joint angle + hand movement angle preferences of each neuron in the layer
@@ -58,7 +62,7 @@ class MotorNeurons(Source):
         -----------
         ndarray. (4=3 joints + 1 hand, num_motorneurons).
         '''
-        pass
+        return self.pref_angles
 
     def set_pref_angles(self, prefs):
         '''Sets the joint angle + hand movement angle preferences of each neuron in the layer
@@ -67,7 +71,7 @@ class MotorNeurons(Source):
         -----------
         prefs: ndarray. (4=3 joints + 1 hand, num_motorneurons).
         '''
-        pass
+        self.pref_angles = prefs
 
     def set_num_winners(self, n_winners):
         '''Sets the number of neurons that win the competition and send non-zero net_act values.
@@ -76,7 +80,7 @@ class MotorNeurons(Source):
         -----------
         n_winners: int. Number of winners.
         '''
-        pass
+        self.n_winners = n_winners
 
     def initialize_pref_angles(self, joints, n_joint_angle_prefs, n_dir_angle_prefs):
         '''Initializes the array that defines each neuron's preferred set of joint angles (3) and hand movement
@@ -110,7 +114,30 @@ class MotorNeurons(Source):
         combinations of values in two 1D arrays (rows and cols). The problem here is the same, except you want to
         generate all combinations of the values in four arrays.
         '''
-        pass
+        shoulder_angle_range = joints[0].get_limits()
+        elbow_angle_range = joints[1].get_limits()
+        wrist_angle_range = joints[2].get_limits()
+        hand_angle_range = (-np.pi, np.pi)
+
+        shoulder_pref_angles = np.linspace(shoulder_angle_range[0], shoulder_angle_range[1], n_joint_angle_prefs)
+        elbow_pref_angles = np.linspace(elbow_angle_range[0], elbow_angle_range[1], n_joint_angle_prefs)
+        wrist_pref_angles = np.linspace(wrist_angle_range[0], wrist_angle_range[1], n_joint_angle_prefs)
+        hand_pref_angles = np.linspace(hand_angle_range[0], hand_angle_range[1], n_dir_angle_prefs)
+
+        array = np.zeros((4, self.get_num_units()))
+
+        col_index = 0
+        for i in range(len(shoulder_pref_angles)):
+            for j in range(len(elbow_pref_angles)):
+                for k in range(len(wrist_pref_angles)):
+                    for m in range(len(hand_pref_angles)):
+                        array[0, col_index] = shoulder_pref_angles[i]
+                        array[1, col_index] = elbow_pref_angles[j]
+                        array[2, col_index] = wrist_pref_angles[k]
+                        array[3, col_index] = hand_pref_angles[m]
+                        col_index += 1
+
+        return array
 
     def net_in(self, joint_angles, move_dir):
         '''Each cell compares the arm's current joint angles (`joint_angles`) and hand movement direction angle
