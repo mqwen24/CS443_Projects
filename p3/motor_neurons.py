@@ -159,7 +159,13 @@ class MotorNeurons(Source):
             current joint angles `joint_angles` and hand movement direction.
 
         '''
-        pass
+        array = np.zeros((self.get_num_units()))
+
+        for i in range(len(array)):
+            curr_pref_angle = self.pref_angles.T[i, :]
+            array[i] = 4-(np.abs(move_dir-curr_pref_angle[3])+np.sum(np.abs(joint_angles-curr_pref_angle[0:3])))/np.pi
+
+        return array
 
     def net_act(self, net_in, eps=1e-10):
         '''Neurons compete and only the net_in values of the top `n_winners` neurons have non-zero net_act values.
