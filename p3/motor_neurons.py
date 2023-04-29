@@ -188,7 +188,13 @@ class MotorNeurons(Source):
         HINT:
         - This competition is very similar to that from the Hebbian Learning project!
         '''
-        pass
+        indices = np.argsort(net_in)[::-1][:self.n_winners]
+        net_act = np.zeros_like(net_in)
+        net_act[indices] = net_in[indices]
+
+        net_act = net_act/(np.max(net_act)+eps)
+
+        return net_act
 
     def forward(self, joint_angles, move_dir):
         '''Forward pass through the motorneuron layer.
@@ -204,7 +210,10 @@ class MotorNeurons(Source):
         -----------
         ndarray. shape=(num_neurons,)=(10290,). Normalized activation of the motorneurons after a competitive process.
         '''
-        pass
+        net_in = self.net_in(joint_angles, move_dir)
+        net_act = self.net_act(net_in)
+
+        return net_act
 
     def plot(self, act, true_angles, titles=['Shoulder angle', 'Elbow angle', 'Wrist angle', 'Move dir'], num_x_labels=5):
         '''Create a vertical stack of plots showing the evidence for the current shoulder, elbow, wrist, and hand
