@@ -69,7 +69,11 @@ class Outstar:
         sink: Source. Layer of sink cells in the Outstar network.
         lr: float. Learning rate used in Outstar wt update rule.
         '''
-        pass
+        self.source = source
+        self.sink = sink
+        self.lr = lr
+        
+        self.wts = np.random.uniform(low=0, high=1, size=(source.get_num_units(), sink.get_num_units()))
 
         # Associate this outstar net with the sink layer. Adjust code as needed to suit your variable naming conventions
         # Keep this here
@@ -82,7 +86,7 @@ class Outstar:
         -----------
         ndarray. shape=(n_source_cells, n_sink_cells).
         '''
-        pass
+        return self.wts
 
     def set_wts(self, new_wts):
         '''Replaces the network weights with the passed in parameter. Used by test code.
@@ -91,15 +95,15 @@ class Outstar:
         -----------
         new_wts: ndarray. shape=(n_source_cells, n_sink_cells). New weights between source and sink layers.
         '''
-        pass
+        self.wts = new_wts
 
     def get_source(self):
         '''Returns the Source layer object'''
-        pass
+        return self.source
 
     def get_sink(self):
         '''Returns the Sink layer object'''
-        pass
+        return self.sink
 
     def update_wts(self, source_act, sink_act):
         '''Updates the weights (shape=(n_source_cells, n_sink_cells)) based on the Outstar rule
@@ -112,15 +116,19 @@ class Outstar:
 
         HINT: It may be helpful to add one or more singleton dimensions when doing the computation
         '''
-        pass
+        source_act = source_act[:, np.newaxis]
+        self.wts = self.wts + self.lr* (source_act* (sink_act* self.wts))
 
     def train_step(self, muscle_net_acts, joint_angles_prev, move_dir):
         '''Do all operations in Outstar network on one training step/iteration.
 
         We pass in muscle acts because we need the same activations that moved the arm from its pre/post babble position
         to do the weight updates
+        
         '''
-        pass
+        source_acts = self.source.forward(joint_angles_prev, move_dir)
+        # Last step
+        self.update_wts(source_acts, muscle_net_acts)
 
     def predict_step(self, joint_angles, move_dir):
         '''Do all operations in Outstar network on one prediction step/iteration.
@@ -133,4 +141,6 @@ class Outstar:
         ndarray. shape=(num_total_muscles,). Activation of each of the (6) muscles computed based on the
             source activation and the Outstar wts.
         '''
-        pass
+        x = self.source.forward(joint_angles, move_dir)
+        y = x @ self.wts
+        return y

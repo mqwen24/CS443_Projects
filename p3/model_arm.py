@@ -163,6 +163,54 @@ class Arm:
             # # Execute me everytime a babble happens.
             # if visualize:
             #     arm_plot.update(positions_prev)
+        
+        N, M = x.shape
+        # print the verbose message:
+        print(f'Starting to train network ....')
+
+        # handling edge cases for the mini_batch_sz
+        if mini_batch_sz > N:
+            mini_batch_sz = N
+        if mini_batch_sz <= 0:
+            mini_batch_sz = 1
+
+        num_iter = 0
+        num_epochs = 0
+
+        if plot_wts_live:
+            fig = plt.figure(figsize=fig_sz)
+
+        while num_epochs < n_epochs:
+            # generate mini batch
+            idx = np.random.choice(N, size=(mini_batch_sz,), replace=True, p=None)
+            x_mini_batch = x[idx, :]
+
+            # forward pass
+            net_in = self.net_in(x_mini_batch)
+            net_act = self.net_act(net_in)
+
+            # weight update
+            self.update_wts(x_mini_batch, net_in, net_act, lr)
+
+            if (num_iter == 0) or (int(num_iter / (N / mini_batch_sz)) == num_epochs + 1):
+                print("Epoch: ", num_epochs)
+                # should go in training loop
+                if plot_wts_live and num_epochs % print_every == 0:
+                    # print(self.wts.T.shape, n_wts_plotted[0], n_wts_plotted[1])
+                    
+                    # file_name = "epoch_" + str(num_epochs) + ".jpg"
+                    # file_path = os.path.join("plot_wts_live/", file_name)
+                    # img = self.np2image(self.wts)
+                    # img.save(file_path)
+                    
+                    draw_grid_image(x=self.wts.T, n_cols=n_wts_plotted[0], n_rows=n_wts_plotted[1], sample_dims=(28, 28, 1), title=f'Net receptive fields (Epoch {num_epochs})')
+                    fig.canvas.draw()
+
+                num_epochs = num_epochs + 1
+
+            num_iter = num_iter + 1
+
+        print("Training finished!")
 
     def test(self, all_target_pos, target_dist_tol=2.0, visualize=True, verbose=True):
         '''Have the arm perform reaching movements to intercept each of the targets one-by-one. Runs the Outstar network

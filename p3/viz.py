@@ -101,7 +101,7 @@ def plot_wts(wts, wts_norm, src_wt_ind=0, feat_vec=None):
     ylim_snk: tuple. (min, max) y axis bounds to use when plotting the sink activations
     ylim_wts: tuple. (min, max) y axis bounds to use when plotting the wts
     '''
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(6, 5))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
 
     ylabel = ['Wts', 'Wts (Normalized)']
     y = [wts, wts_norm]

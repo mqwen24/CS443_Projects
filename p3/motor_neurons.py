@@ -44,6 +44,7 @@ class MotorNeurons(Source):
         self.n_winners = n_winners
 
         self.pref_angles = self.initialize_pref_angles(self.joints, self.n_joint_angle_prefs, self.n_dir_angle_prefs)
+        
     def get_num_units(self):
         '''Returns the number of motorneurons in the layer.
 
@@ -119,25 +120,27 @@ class MotorNeurons(Source):
         wrist_angle_range = joints[2].get_limits()
         hand_angle_range = (-np.pi, np.pi)
 
+        # numpy.linspace(start, stop, num=50)
         shoulder_pref_angles = np.linspace(shoulder_angle_range[0], shoulder_angle_range[1], n_joint_angle_prefs)
         elbow_pref_angles = np.linspace(elbow_angle_range[0], elbow_angle_range[1], n_joint_angle_prefs)
         wrist_pref_angles = np.linspace(wrist_angle_range[0], wrist_angle_range[1], n_joint_angle_prefs)
         hand_pref_angles = np.linspace(hand_angle_range[0], hand_angle_range[1], n_dir_angle_prefs)
 
-        array = np.zeros((4, self.get_num_units()))
+        # num_units = # motor neurons = # different angle combinations;
+        pref_angles = np.zeros((4, self.get_num_units()))
 
-        col_index = 0
+        neuron_i = 0
         for i in range(len(shoulder_pref_angles)):
             for j in range(len(elbow_pref_angles)):
                 for k in range(len(wrist_pref_angles)):
                     for m in range(len(hand_pref_angles)):
-                        array[0, col_index] = shoulder_pref_angles[i]
-                        array[1, col_index] = elbow_pref_angles[j]
-                        array[2, col_index] = wrist_pref_angles[k]
-                        array[3, col_index] = hand_pref_angles[m]
-                        col_index += 1
+                        pref_angles[0, neuron_i] = shoulder_pref_angles[i]
+                        pref_angles[1, neuron_i] = elbow_pref_angles[j]
+                        pref_angles[2, neuron_i] = wrist_pref_angles[k]
+                        pref_angles[3, neuron_i] = hand_pref_angles[m]
+                        neuron_i += 1
 
-        return array
+        return pref_angles
 
     def net_in(self, joint_angles, move_dir):
         '''Each cell compares the arm's current joint angles (`joint_angles`) and hand movement direction angle
@@ -159,13 +162,14 @@ class MotorNeurons(Source):
             current joint angles `joint_angles` and hand movement direction.
 
         '''
-        array = np.zeros((self.get_num_units()))
+        num_neurons = self.get_num_units()
+        net_in = np.zeros(shape=(num_neurons,))
 
-        for i in range(len(array)):
-            curr_pref_angle = self.pref_angles.T[i, :]
-            array[i] = 4-(np.abs(move_dir-curr_pref_angle[3])+np.sum(np.abs(joint_angles-curr_pref_angle[0:3])))/np.pi
+        for i in range(num_neurons):
+            pref_angle = self.pref_angles.T[i, :]
+            net_in[i] = 4- (np.abs(move_dir- pref_angle[3])+ np.sum(np.abs(joint_angles- pref_angle[0:3])))/ np.pi
 
-        return array
+        return net_in
 
     def net_act(self, net_in, eps=1e-10):
         '''Neurons compete and only the net_in values of the top `n_winners` neurons have non-zero net_act values.
@@ -188,9 +192,10 @@ class MotorNeurons(Source):
         HINT:
         - This competition is very similar to that from the Hebbian Learning project!
         '''
-        indices = np.argsort(net_in)[::-1][:self.n_winners]
+        top_k_indices = np.argsort(net_in)[::-1][:self.n_winners]
+        
         net_act = np.zeros_like(net_in)
-        net_act[indices] = net_in[indices]
+        net_act[top_k_indices] = net_in[top_k_indices]
 
         net_act = net_act/(np.max(net_act)+eps)
 
@@ -236,7 +241,7 @@ class MotorNeurons(Source):
             # Get set of preferred angles for current thing we are detecting (angle of joint i or hand move dir)
             curr_pref_angles = angle_prefs[i]
             curr_pref_angle_set = np.unique(curr_pref_angles)
-            #
+            
             curr_resp = np.zeros(len(curr_pref_angle_set))
             # Step through each preferred angle, determine total evidence for it
             for a in range(len(curr_pref_angle_set)):

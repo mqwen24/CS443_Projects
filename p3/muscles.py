@@ -47,7 +47,8 @@ class Muscles(Sink):
         NOTE:
         -Until instructed otherwise in the notebook, ignore for now what happens when motorneuron activation DOES arrive.
         '''
-        pass
+        net_in = net_act_source @ self.outstar.get_wts()
+        return net_in
 
     def randomize_acts(self):
         '''Generates one random activation in each agonist/antagonist muscle pair.
@@ -106,7 +107,8 @@ class Muscles(Sink):
         NOTE:
         -Until instructed otherwise in the notebook, ignore for now what happens when motorneuron activation DOES arrive.
         '''
-        pass
+        net_act = net_in
+        return net_in
 
     def forward(self, net_act_source=None):
         '''Do forward pass on sink neurons
@@ -119,7 +121,11 @@ class Muscles(Sink):
         -----------
         ndarray. shape=(num_total_muscles,). Activation of each of the (6) muscles.
         '''
-        if net_act_source is None:
+        if net_act_source is None: #training
             self.acts = self.randomize_acts()
+            
+        else: # prediction mode
+            net_in = self.net_in(net_act_source)
+            self.acts = self.net_act(net_in)
         
         return self.acts
