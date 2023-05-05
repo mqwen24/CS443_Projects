@@ -117,7 +117,7 @@ class Outstar:
         HINT: It may be helpful to add one or more singleton dimensions when doing the computation
         '''
         source_act = source_act[:, np.newaxis]
-        self.wts = self.wts + self.lr* (source_act* (sink_act* self.wts))
+        self.wts = self.wts + self.lr* (source_act* (sink_act - self.wts))
 
     def train_step(self, muscle_net_acts, joint_angles_prev, move_dir):
         '''Do all operations in Outstar network on one training step/iteration.
