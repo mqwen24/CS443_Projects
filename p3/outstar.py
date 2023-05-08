@@ -11,6 +11,7 @@ import numpy as np
 class Layer(ABC):
     '''Class with methods that both Source and Sink cells must both implement
     '''
+
     @abstractmethod
     def get_num_units(self):
         '''Abstract method, leave this blank'''
@@ -57,6 +58,7 @@ class Sink(Layer):
 class Outstar:
     '''Represents an Outstar Neural Network
     '''
+
     def __init__(self, source, sink, lr):
         '''Outstar network constructor that:
         - stores the source and sink layers (and other parameters passed in) as instance variables
@@ -72,7 +74,7 @@ class Outstar:
         self.source = source
         self.sink = sink
         self.lr = lr
-        
+
         self.wts = np.random.uniform(low=0, high=1, size=(source.get_num_units(), sink.get_num_units()))
 
         # Associate this outstar net with the sink layer. Adjust code as needed to suit your variable naming conventions
@@ -117,7 +119,7 @@ class Outstar:
         HINT: It may be helpful to add one or more singleton dimensions when doing the computation
         '''
         source_act = source_act[:, np.newaxis]
-        self.wts = self.wts + self.lr* (source_act* (sink_act - self.wts))
+        self.wts = self.wts + self.lr * (source_act * (sink_act - self.wts))
 
     def train_step(self, muscle_net_acts, joint_angles_prev, move_dir):
         '''Do all operations in Outstar network on one training step/iteration.

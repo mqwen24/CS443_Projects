@@ -122,7 +122,7 @@ class Arm:
 
         HINT: Check out np.atan2
         '''
-        pass
+        return np.arctan2(eff_pos_2[1]-eff_pos_1[1], eff_pos_2[0]-eff_pos_1[0])
 
     def train(self, epochs=100, randomize_joints_every=10, n_babbles=9, verbose=True, print_every=20, visualize=True):
         '''Trains the arm using the Outstar neural network to learn the mapping between motorneuron activations (sink)
@@ -160,58 +160,41 @@ class Arm:
         if visualize:
             arm_plot = ArmPlot()
 
-            # # Execute me everytime a babble happens.
-            # if visualize:
-            #     arm_plot.update(positions_prev)
-        
-        N, M = x.shape
         # print the verbose message:
         print(f'Starting to train network ....')
 
-        # handling edge cases for the mini_batch_sz
-        if mini_batch_sz > N:
-            mini_batch_sz = N
-        if mini_batch_sz <= 0:
-            mini_batch_sz = 1
+        for i in range(epochs):
+            if i % randomize_joints_every == 0:
+                self.randomize_joint_angles()
 
-        num_iter = 0
-        num_epochs = 0
+            if i % print_every == 0 and verbose is True:
+                print(f'Epoch {i+1}/{epochs} start ...')
 
-        if plot_wts_live:
-            fig = plt.figure(figsize=fig_sz)
+            for j in range(n_babbles):
+                pre_pos = self.get_joint_positions()
+                rand_muscle_act = np.random.uniform(0, 1, 6)
 
-        while num_epochs < n_epochs:
-            # generate mini batch
-            idx = np.random.choice(N, size=(mini_batch_sz,), replace=True, p=None)
-            x_mini_batch = x[idx, :]
+                for k in range(len(self.joints)):
+                    self.joints[k].update_angle(rand_muscle_act[k*2:k*2+2])
 
-            # forward pass
-            net_in = self.net_in(x_mini_batch)
-            net_act = self.net_act(net_in)
+                after_pos = self.get_joint_positions()
+                move_dir = self.get_movement_dir(after_pos[-1], pre_pos[-1])
+                initial_joint_angle = self.get_joint_angles()
+                # print(np.shape(pre_pos))
+                self.outstar_net.train_step(rand_muscle_act, initial_joint_angle, move_dir)
 
-            # weight update
-            self.update_wts(x_mini_batch, net_in, net_act, lr)
-
-            if (num_iter == 0) or (int(num_iter / (N / mini_batch_sz)) == num_epochs + 1):
-                print("Epoch: ", num_epochs)
-                # should go in training loop
-                if plot_wts_live and num_epochs % print_every == 0:
-                    # print(self.wts.T.shape, n_wts_plotted[0], n_wts_plotted[1])
-                    
-                    # file_name = "epoch_" + str(num_epochs) + ".jpg"
-                    # file_path = os.path.join("plot_wts_live/", file_name)
-                    # img = self.np2image(self.wts)
-                    # img.save(file_path)
-                    
-                    draw_grid_image(x=self.wts.T, n_cols=n_wts_plotted[0], n_rows=n_wts_plotted[1], sample_dims=(28, 28, 1), title=f'Net receptive fields (Epoch {num_epochs})')
-                    fig.canvas.draw()
-
-                num_epochs = num_epochs + 1
-
-            num_iter = num_iter + 1
+                if visualize:
+                    arm_plot.update(pre_pos)
 
         print("Training finished!")
 
+    def get_joint_angles(self):
+        angles = np.zeros(len(self.joints))
+
+        for i in range(len(self.joints)):
+            angles[i] = self.joints[i].get_angle()
+
+        return angles
     def test(self, all_target_pos, target_dist_tol=2.0, visualize=True, verbose=True):
         '''Have the arm perform reaching movements to intercept each of the targets one-by-one. Runs the Outstar network
         in prediction mode: given the sensed state of the arm by the motorneurons (source), compute the muscle activations
@@ -241,10 +224,40 @@ class Arm:
         if visualize:
             arm_plot = ArmPlot()
 
-        # # Plot
-        # # Execute me every time the arm moves
-        # if visualize:
-        #     arm_plot.update(arm_pos, all_target_pos)
+        num_targets = all_target_pos.shape[0]
+        self.reset_joint_angles()
+        print("Start reaching...")
+        for i in range(num_targets):
+            hand_pos = self.get_joint_positions()[-1]
+            curr_target = all_target_pos[i, :]
+            if verbose:
+                print(f'{i+1}/{num_targets}, currently reaching for {curr_target}')
+            dist = self.get_dist_between_targets(hand_pos, curr_target)
+
+            num_trial = 1
+            while dist > target_dist_tol:
+                if verbose:
+                    print(f'Number of times tried: {num_trial}')
+                    num_trial += 1
+                if visualize:
+                    arm_plot.update(self.get_joint_positions(), all_target_pos)
+
+                move_dir = self.get_movement_dir(curr_target, hand_pos)
+
+                pred_muscle_act = self.outstar_net.predict_step(self.get_joint_angles(), move_dir)
+
+                hand_pos = self.get_joint_positions()[-1]
+                curr_dist = self.get_dist_between_targets(hand_pos, curr_target)
+
+                for k in range(len(self.joints)):
+                    self.joints[k].update_angle(pred_muscle_act[k * 2:k * 2 + 2],
+                                                angle_step=self.get_dist_scaling(dist, curr_dist))
+                dist = curr_dist
+
+        print("Finished all reaching")
+
+    def get_dist_between_targets(self, pos1, pos2):
+        return np.sqrt(np.sum((pos2-pos1)**2))
 
     def get_dist_scaling(self, initial_target_dist, curr_target_dist, alpha=0.9, beta=0.002, gamma=0.1):
         '''Scaling function ensuring approximately bellshaped velocity curves characteristic of

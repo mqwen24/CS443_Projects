@@ -44,7 +44,7 @@ class MotorNeurons(Source):
         self.n_winners = n_winners
 
         self.pref_angles = self.initialize_pref_angles(self.joints, self.n_joint_angle_prefs, self.n_dir_angle_prefs)
-        
+
     def get_num_units(self):
         '''Returns the number of motorneurons in the layer.
 
@@ -54,7 +54,7 @@ class MotorNeurons(Source):
             and preferred hand movement directions. In the default configuration with 7 preferred angles per joint and
             30 preferred hand movement directions, the total number of neurons is 10,290 (do NOT hardcode this!).
         '''
-        return self.n_joint_angle_prefs**3*self.n_dir_angle_prefs
+        return self.n_joint_angle_prefs ** 3 * self.n_dir_angle_prefs
 
     def get_pref_angles(self):
         '''Returns the joint angle + hand movement angle preferences of each neuron in the layer
@@ -167,8 +167,7 @@ class MotorNeurons(Source):
 
         for i in range(num_neurons):
             pref_angle = self.pref_angles.T[i, :]
-            net_in[i] = 4- (np.abs(move_dir- pref_angle[3])+ np.sum(np.abs(joint_angles- pref_angle[0:3])))/ np.pi
-
+            net_in[i] = 4 - (np.abs(move_dir - pref_angle[3]) + np.sum(np.abs(joint_angles - pref_angle[0:3]))) / np.pi
         return net_in
 
     def net_act(self, net_in, eps=1e-10):
@@ -193,11 +192,11 @@ class MotorNeurons(Source):
         - This competition is very similar to that from the Hebbian Learning project!
         '''
         top_k_indices = np.argsort(net_in)[::-1][:self.n_winners]
-        
+
         net_act = np.zeros_like(net_in)
         net_act[top_k_indices] = net_in[top_k_indices]
 
-        net_act = net_act/(np.max(net_act)+eps)
+        net_act = net_act / (np.max(net_act) + eps)
 
         return net_act
 
@@ -220,7 +219,8 @@ class MotorNeurons(Source):
 
         return net_act
 
-    def plot(self, act, true_angles, titles=['Shoulder angle', 'Elbow angle', 'Wrist angle', 'Move dir'], num_x_labels=5):
+    def plot(self, act, true_angles, titles=['Shoulder angle', 'Elbow angle', 'Wrist angle', 'Move dir'],
+             num_x_labels=5):
         '''Create a vertical stack of plots showing the evidence for the current shoulder, elbow, wrist, and hand
             direction angle that characterize the state of the arm as coded by the motorneurons.
 
@@ -235,13 +235,13 @@ class MotorNeurons(Source):
         '''
 
         angle_prefs = self.get_pref_angles()
-        fig, axes = plt.subplots(nrows=len(angle_prefs), ncols=1, figsize=(5, len(angle_prefs)*3.5))
+        fig, axes = plt.subplots(nrows=len(angle_prefs), ncols=1, figsize=(5, len(angle_prefs) * 3.5))
 
         for i in range(len(angle_prefs)):
             # Get set of preferred angles for current thing we are detecting (angle of joint i or hand move dir)
             curr_pref_angles = angle_prefs[i]
             curr_pref_angle_set = np.unique(curr_pref_angles)
-            
+
             curr_resp = np.zeros(len(curr_pref_angle_set))
             # Step through each preferred angle, determine total evidence for it
             for a in range(len(curr_pref_angle_set)):
@@ -253,7 +253,7 @@ class MotorNeurons(Source):
 
             x_ticks = np.linspace(curr_pref_angle_set.min(), curr_pref_angle_set.max(), num_x_labels)
             axes[i].set_xticks(x_ticks)
-            axes[i].set_xticklabels([f'{tickmark/np.pi:.2f}π' for tickmark in x_ticks], fontdict={'fontsize': 12})
+            axes[i].set_xticklabels([f'{tickmark / np.pi:.2f}π' for tickmark in x_ticks], fontdict={'fontsize': 12})
 
             axes[i].set_ylabel('Evidence')
 
