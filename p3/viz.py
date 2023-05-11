@@ -33,7 +33,7 @@ class ArmPlot:
         '''Returns a reference to the matplotlib Figure object used to plot the arm and workspace.'''
         return self.fig
 
-    def update(self, curr_arm_pos, all_target_pos_xy=None):
+    def update(self, curr_arm_pos, all_target_pos_xy=None, curr_target=None, pause=None):
         '''Plot the current state of the arm in the workspace.
 
         Parameters:
@@ -75,7 +75,10 @@ class ArmPlot:
 
         # Only show targets if (x, y) positions passed in
         if all_target_pos_xy is not None:
-            ax_c.plot(all_target_pos_xy[:, 0], all_target_pos_xy[:, 1], 'o', markersize=20, label='Targets')
+            ax_c.plot(all_target_pos_xy[:, 0], all_target_pos_xy[:, 1], 'o', color="c", markersize=20, label='Targets')
+        
+        if curr_target is not None:
+            ax_c.plot(all_target_pos_xy[curr_target, 0], all_target_pos_xy[curr_target, 1], 'o', color="r", markersize=20, label='Current Target')
 
         ax_c.legend(loc='lower right')
 
@@ -85,6 +88,9 @@ class ArmPlot:
         display.clear_output(wait=True)
         display.display(self.fig)
         time.sleep(0.05)
+        
+        if pause is not None:
+            time.sleep(pause)
 
 
 def plot_wts(wts, wts_norm, src_wt_ind=0, feat_vec=None):

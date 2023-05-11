@@ -122,7 +122,7 @@ class Arm:
 
         HINT: Check out np.atan2
         '''
-        return np.arctan2(eff_pos_2[1]-eff_pos_1[1], eff_pos_2[0]-eff_pos_1[0])
+        return np.arctan2(eff_pos_2[1] - eff_pos_1[1], eff_pos_2[0] - eff_pos_1[0])
 
     def train(self, epochs=100, randomize_joints_every=10, n_babbles=9, verbose=True, print_every=20, visualize=True):
         '''Trains the arm using the Outstar neural network to learn the mapping between motorneuron activations (sink)
@@ -172,16 +172,30 @@ class Arm:
 
             for j in range(n_babbles):
                 pre_pos = self.get_joint_positions()
-                rand_muscle_act = np.random.uniform(0, 1, 6)
+                initial_joint_angle = self.get_joint_angles()
+                
+                # generate a new set of random muscle activations
+                muscles = self.outstar_net.get_sink()
+                rand_muscle_act = muscles.randomize_acts()
 
+                # use the muscle activations to update joint angles
                 for k in range(len(self.joints)):
-                    self.joints[k].update_angle(rand_muscle_act[k*2:k*2+2])
+                    self.joints[k].update_angle(rand_muscle_act[k*2: k*2+2])
 
+                # compute direction in which the end effector moved
+                # compare postions of the hand before / after the movement caused by the current angle
                 after_pos = self.get_joint_positions()
                 move_dir = self.get_movement_dir(after_pos[-1], pre_pos[-1])
-                initial_joint_angle = self.get_joint_angles()
-                # print(np.shape(pre_pos))
+                
+                
+                # update weights
                 self.outstar_net.train_step(rand_muscle_act, initial_joint_angle, move_dir)
+                
+                if i % print_every == 0 and (j == 0) and verbose is True:
+                    print(f'Shoulder: {pre_pos[0]}, Elbow: {pre_pos[1]}, Wrist: {pre_pos[2]}, Hand: {pre_pos[3]}')
+                    
+                if i % print_every == 0 and (j == n_babbles - 1) and verbose is True:
+                    print(f'Shoulder: {pre_pos[0]}, Elbow: {pre_pos[1]}, Wrist: {pre_pos[2]}, Hand: {pre_pos[3]}')
 
                 if visualize:
                     arm_plot.update(pre_pos)
@@ -225,34 +239,59 @@ class Arm:
             arm_plot = ArmPlot()
 
         num_targets = all_target_pos.shape[0]
+        
+        # Arm starts in the default postion
         self.reset_joint_angles()
+        
         print("Start reaching...")
+        
+        # make one target the reaching goal at a time
         for i in range(num_targets):
-            hand_pos = self.get_joint_positions()[-1]
             curr_target = all_target_pos[i, :]
             if verbose:
                 print(f'{i+1}/{num_targets}, currently reaching for {curr_target}')
-            dist = self.get_dist_between_targets(hand_pos, curr_target)
-
+                
+            hand_pos = self.get_joint_positions()[-1]
+                
+            # distance between hand and target
+            initial_dist = self.get_dist_between_targets(hand_pos, curr_target)
+            curr_dist = initial_dist
             num_trial = 1
-            while dist > target_dist_tol:
-                if verbose:
-                    print(f'Number of times tried: {num_trial}')
-                    num_trial += 1
+            while curr_dist > target_dist_tol:
+                num_trial =  num_trial + 1
+                print(curr_dist, target_dist_tol)
+                pre_pos = self.get_joint_positions()[-1]
+                initial_joint_angle = self.get_joint_angles()
+                
                 if visualize:
-                    arm_plot.update(self.get_joint_positions(), all_target_pos)
-
+                    arm_plot.update(self.get_joint_positions(), all_target_pos, i)
+                    
                 move_dir = self.get_movement_dir(curr_target, hand_pos)
 
+                # predict muscle act given current joint angles and angle between hand and target
                 pred_muscle_act = self.outstar_net.predict_step(self.get_joint_angles(), move_dir)
 
-                hand_pos = self.get_joint_positions()[-1]
-                curr_dist = self.get_dist_between_targets(hand_pos, curr_target)
-
+                # update joint angles of the arm with the predicted muscle activations
                 for k in range(len(self.joints)):
-                    self.joints[k].update_angle(pred_muscle_act[k * 2:k * 2 + 2],
-                                                angle_step=self.get_dist_scaling(dist, curr_dist))
-                dist = curr_dist
+                    self.joints[k].update_angle(pred_muscle_act[k*2: k*2+2], 
+                                                angle_step=self.get_dist_scaling(initial_dist, curr_dist))
+                    print(self.get_joint_angles())
+                
+                post_pos = self.get_joint_positions()[-1]
+                
+                # update current distance
+                curr_dist = self.get_dist_between_targets(post_pos, curr_target)
+                move_dir_2 = self.get_movement_dir(post_pos, pre_pos)                
+                
+                # update weights
+                self.outstar_net.train_step(pred_muscle_act, initial_joint_angle, move_dir_2)
+                
+                if curr_dist <= target_dist_tol and visualize:
+                    arm_plot.update(self.get_joint_positions(), all_target_pos, i, 1.0)
+                
+                if curr_dist <= target_dist_tol and verbose:
+                    print(f'Number of times tried: {num_trial}')
+            print("end: ", curr_dist, target_dist_tol)
 
         print("Finished all reaching")
 
