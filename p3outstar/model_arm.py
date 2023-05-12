@@ -209,7 +209,7 @@ class Arm:
             angles[i] = self.joints[i].get_angle()
 
         return angles
-    def test(self, all_target_pos, target_dist_tol=2.0, visualize=True, verbose=True):
+    def test(self, all_target_pos, target_dist_tol=2.0, visualize=True, verbose=True, train=False):
         '''Have the arm perform reaching movements to intercept each of the targets one-by-one. Runs the Outstar network
         in prediction mode: given the sensed state of the arm by the motorneurons (source), compute the muscle activations
         (sink) needed to get the hand closer to intercepting the next target.
@@ -251,31 +251,33 @@ class Arm:
             if verbose:
                 print(f'{i+1}/{num_targets}, currently reaching for {curr_target}')
                 
-            hand_pos = self.get_joint_positions()[-1]
+            pre_pos = self.get_joint_positions()[-1]
                 
             # distance between hand and target
-            initial_dist = self.get_dist_between_targets(hand_pos, curr_target)
+            initial_dist = self.get_dist_between_targets(pre_pos, curr_target)
             curr_dist = initial_dist
             num_trial = 1
             while curr_dist > target_dist_tol:
                 num_trial =  num_trial + 1
-                print(curr_dist, target_dist_tol)
+                
+                # print(f"{num_trial}: current distance from hand to target: {curr_dist:.2f}")
+                
                 pre_pos = self.get_joint_positions()[-1]
                 initial_joint_angle = self.get_joint_angles()
                 
                 if visualize:
                     arm_plot.update(self.get_joint_positions(), all_target_pos, i)
                     
-                move_dir = self.get_movement_dir(curr_target, hand_pos)
+                move_dir = self.get_movement_dir(curr_target, pre_pos)
 
                 # predict muscle act given current joint angles and angle between hand and target
                 pred_muscle_act = self.outstar_net.predict_step(self.get_joint_angles(), move_dir)
 
                 # update joint angles of the arm with the predicted muscle activations
                 for k in range(len(self.joints)):
-                    self.joints[k].update_angle(pred_muscle_act[k*2: k*2+2], 
-                                                angle_step=self.get_dist_scaling(initial_dist, curr_dist))
-                    print(self.get_joint_angles())
+                    self.joints[k].update_angle(pred_muscle_act[k*2: k*2+2])
+                                                # angle_step=self.get_dist_scaling(initial_dist, curr_dist))
+                    # print(self.get_joint_angles())
                 
                 post_pos = self.get_joint_positions()[-1]
                 
@@ -284,14 +286,14 @@ class Arm:
                 move_dir_2 = self.get_movement_dir(post_pos, pre_pos)                
                 
                 # update weights
-                self.outstar_net.train_step(pred_muscle_act, initial_joint_angle, move_dir_2)
-                
-                if curr_dist <= target_dist_tol and visualize:
-                    arm_plot.update(self.get_joint_positions(), all_target_pos, i, 1.0)
-                
-                if curr_dist <= target_dist_tol and verbose:
-                    print(f'Number of times tried: {num_trial}')
-            print("end: ", curr_dist, target_dist_tol)
+                if train:
+                    self.outstar_net.train_step(pred_muscle_act, initial_joint_angle, move_dir_2)
+            
+            if verbose:
+                print(f'Number of times tried: {num_trial} \nDistance from hand to target: {curr_dist:.2f}\n')
+            
+            if visualize:
+                arm_plot.update(self.get_joint_positions(), all_target_pos, i, 1.0)
 
         print("Finished all reaching")
 
